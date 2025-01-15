@@ -12,7 +12,7 @@ export const getAllPrescriptions = async (req, res) => {
 
     res.status(200).json({
       data: prescriptions,
-      message: 'successfully retrieved all Prescriptions',
+      message: 'successfully retrieved all the Prescriptions',
     });
   } catch (error) {
     console.error(`Error fetching Prescriptions: ${error}`);
