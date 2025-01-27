@@ -9,7 +9,15 @@ import prescriptionRoutes from './routes/prescription.js';
 const app = express();
 dotenv.config();
 
-app.use(cors());
+// Allowing the Front-end to make requests to the Backend API
+app.use(
+  cors({
+    origin: 'https://health-service.click',
+    methods: 'GET,POST,PUT,DELETE',
+    credentials: true,
+  })
+);
+
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
