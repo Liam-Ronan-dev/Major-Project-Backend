@@ -12,7 +12,7 @@ dotenv.config();
 // Allowing the Front-end to make requests to the Backend API
 app.use(
   cors({
-    origin: 'https://health-service.click',
+    origin: 'http://localhost:5173/',
     methods: 'GET,POST,PUT,DELETE',
     credentials: true,
   })
