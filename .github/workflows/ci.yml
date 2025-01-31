@@ -1,0 +1,41 @@
+name: '✅ Run Jest Tests & Format Code'
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+  push:
+    branches:
+      - main
+      - develop
+
+jobs:
+  test-and-format:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x, 22.x] # Test on multiple Node.js versions
+
+    steps:
+      - name: '📥 Checkout Code'
+        uses: actions/checkout@v4
+
+      - name: '👷 Set up Node.js ${{ matrix.node-version }}'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: '📦 Install Dependencies'
+        run: npm ci
+
+      - name: '🎨 Check Code Formatting with Prettier'
+        run: npm run format
+
+      - name: '🔍 Check ESLint'
+        run: npm run lint
+
+      - name: '🧪 Run Jest Tests'
+        run: npm run test

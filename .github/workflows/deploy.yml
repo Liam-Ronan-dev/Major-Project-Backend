@@ -1,0 +1,43 @@
+# This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs
+
+name: 🚀 Deploy Back-end to EC2 Instance
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    strategy:
+      matrix:
+        node-version: [22.x]
+        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
+
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+        # Use Node.js version specified in the matrix
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: 📦 Install modules
+        run: npm ci
+
+        # Create or overwrite a .env file using the secret from GitHub
+      - name: '📝 Set Environment Variables'
+        run: |
+          touch .env
+          echo "${{ secrets.PROD_ENV }}" > .env
+
+        # Restart the PM2 process named 'BackendAPI'
+      - name: '🔄 Restart PM2 Service'
+        run: pm2 restart BackendAPI
