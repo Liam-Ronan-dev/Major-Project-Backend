@@ -44,8 +44,3 @@ jobs:
           snyk test --severity-threshold=high || echo "⚠️ Medium/low vulnerabilities detected but not failing the build"
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-
-      - name: 📡 Upload to Snyk for Continuous Monitoring
-        run: snyk monitor
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
