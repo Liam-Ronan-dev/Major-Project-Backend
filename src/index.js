@@ -3,6 +3,7 @@ import * as dotenv from 'dotenv';
 import express from 'express';
 import morgan from 'morgan';
 import { connectDB } from './config/db.js';
+import userRoutes from './routes/User.js';
 
 import prescriptionRoutes from './routes/prescription.js';
 
@@ -26,6 +27,7 @@ app.get('/api/health', (req, res) => {
   res.json({ message: 'hello world!' });
 });
 
+app.use('/api', userRoutes);
 app.use('/api', prescriptionRoutes);
 
 connectDB();
