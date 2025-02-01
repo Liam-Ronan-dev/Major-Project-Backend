@@ -1,55 +1,18 @@
 import { User } from '../models/User.js';
-import {
-  createJWT,
-  hashField,
-  compareField,
-  checkPasswordStrength,
-} from '../modules/auth.js';
+import { createJWT, hashField, compareField } from '../modules/auth.js';
 
-// Register A User
-export const registerUser = async (req, res) => {
+// ✅ Register A User (Optimized)
+export const registerUser = async (req, res, next) => {
   try {
     const { email, password, licenseNumber, role } = req.body;
 
-    // Validate input
-    if (!email || !password || !licenseNumber || !role) {
-      return res
-        .status(422)
-        .json({ message: 'Please fill in all form fields' });
-    }
-
-    // Validate licenseNumber - only 6 digits
-    if (!/^\d{6}$/.test(licenseNumber)) {
-      return res
-        .status(400)
-        .json({
-          message: 'License number must be exactly 6 digits (numeric only)',
-        });
-    }
-
-    // Validate role
-    const validRoles = ['doctor', 'pharmacist'];
-    if (!validRoles.includes(role.toLowerCase())) {
-      return res
-        .status(400)
-        .json({ message: 'Invalid role. Choose doctor or pharmacist' });
-    }
-
-    // Check if email already exists
+    // ✅ Check if email already exists
     if (await User.findOne({ email })) {
       return res.status(409).json({ message: 'Email already exists' });
     }
 
-    const passwordCheck = checkPasswordStrength(password);
-    if (!passwordCheck.strong) {
-      return res.status(400).json({
-        message: 'Password is too weak',
-        suggestions: passwordCheck.errors, // ✅ Return password improvement suggestions
-      });
-    }
-
-    // Check for duplicate license number before hashing
-    const users = await User.find(); // Get all users (hashed license numbers)
+    // ✅ Check for duplicate license number before hashing
+    const users = await User.find();
     for (const user of users) {
       const isMatch = await compareField(licenseNumber, user.licenseNumber);
       if (isMatch) {
@@ -59,33 +22,27 @@ export const registerUser = async (req, res) => {
       }
     }
 
-    // Hash password & license number
+    // ✅ Hash password & license number
     const hashedPassword = await hashField(password);
     const hashedLicenseNumber = await hashField(licenseNumber);
 
-    // Create new user
+    // ✅ Create new user (Set `isVerified = true` before saving)
     const user = new User({
       email,
       password: hashedPassword,
-      licenseNumber: hashedLicenseNumber, // ✅ Store hashed license number
+      licenseNumber: hashedLicenseNumber,
       role: role.toLowerCase(),
+      isVerified: true, // ✅ Set before saving (No second save required)
     });
 
-    // Save user to database
+    // ✅ Save user to database (Only once!)
     await user.save();
 
-    // Simulate verification process (10-second delay)
-    // await new Promise((resolve) => setTimeout(resolve, 10000));
-
-    // Set isVerified to true
-    user.isVerified = true;
-    await user.save();
-
-    // Generate JWT token
+    // ✅ Generate JWT token
     const token = createJWT(user);
 
-    // Send response after verification
-    res.status(201).json({
+    // ✅ Send response
+    return res.status(201).json({
       message: 'User registered successfully. Verification complete.',
       token,
       user: {
@@ -97,8 +54,8 @@ export const registerUser = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    return res
-      .status(500)
-      .json({ message: 'Registration failed', error: error.message });
+
+    // Pass the error to the next middleware - error.js in middleware folder
+    next(error);
   }
 };

@@ -6,6 +6,7 @@ import { connectDB } from './config/db.js';
 import userRoutes from './routes/User.js';
 
 import prescriptionRoutes from './routes/prescription.js';
+import { errorHandler } from './middleware/errors.js';
 
 const app = express();
 dotenv.config();
@@ -30,6 +31,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api', userRoutes);
 app.use('/api', prescriptionRoutes);
 
+app.use(errorHandler);
 connectDB();
 
 export default app;

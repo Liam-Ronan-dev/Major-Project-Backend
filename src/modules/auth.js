@@ -1,13 +1,5 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
-import owasp from 'owasp-password-strength-test';
-
-// OWASP Config for testing password strength
-owasp.config({
-  minLength: 8, // Minimum 8 characters
-  minOptionalTestsToPass: 4, // Require at least 3 strength checks to pass
-  maxLength: 128,
-});
 
 const saltRounds = 10;
 
@@ -20,18 +12,6 @@ export const hashField = async (field) => {
 // Function for comparing user credentials with hashed value in the database
 export const compareField = async (field, hashedField) => {
   return await bcrypt.compare(field, hashedField);
-};
-
-// Function to test and suggest stronger passwords
-export const checkPasswordStrength = (password) => {
-  if (!password || typeof password !== 'string') {
-    return { strong: false, errors: ['Password must be a valid string.'] };
-  }
-
-  const passwordResult = owasp.test(password);
-  return passwordResult.strong
-    ? { strong: true }
-    : { strong: false, errors: passwordResult.errors };
 };
 
 // Create JWT - using JWT secret
