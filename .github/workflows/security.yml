@@ -17,10 +17,20 @@ jobs:
       - name: Install Node.js 🟢
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '22'
+          cache: 'npm' # ✅ Enables caching for npm dependencies
 
-      - name: Install Dependencies 📦
-        run: npm ci
+      - name: Cache Snyk CLI 🔄
+        id: snyk-cache
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: snyk-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: snyk-${{ runner.os }}-
+
+      - name: 🔧 Install Snyk CLI (Only If Not Cached)
+        run: npm install -g snyk
+        if: steps.snyk-cache.outputs.cache-hit != 'true' # ✅ Only installs if cache miss
 
       - name: 🛡️ Display Snyk ASCII Logo & Run Security Scan
         run: |
@@ -34,7 +44,7 @@ jobs:
           snyk test
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-          
+
       - name: 📡 Upload to Snyk for Continuous Monitoring
         run: snyk monitor
         env:
