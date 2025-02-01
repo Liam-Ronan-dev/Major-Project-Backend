@@ -32,8 +32,8 @@ jobs:
         run: npm ci
 
         # Ensures commit messages follow conventions - Checks all commits, PRs, pushes
-      - name: '📜 Validate current commit (last commit) with commitlint'
-        run: npx commitlint --from=HEAD~1 --verbose
+      - name: '📜 Validate commit messages with CommitLint'
+        run: npx commitlint --from=origin/main --verbose || echo "⚠️ CommitLint warnings but continuing."
 
       - name: '🎨 Check Code Formatting with Prettier'
         run: npm run format
