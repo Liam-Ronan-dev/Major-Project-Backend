@@ -10,7 +10,8 @@
     "format": "prettier --write \"src/**/*.{js,ts}\" \"tests/**/*.{js,ts}\"",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "prepare": "husky"
+    "prepare": "husky",
+    "commitlint": "commitlint --edit"
   },
   "keywords": [],
   "author": "",
@@ -45,6 +46,7 @@
     "*.js": [
       "prettier --write \"src/**/*.{js,ts}\" \"tests/**/*.{js,ts}\"",
       "eslint --fix",
+      "npm run test",
       "git add ."
     ]
   }
