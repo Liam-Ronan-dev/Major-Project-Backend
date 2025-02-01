@@ -1,8 +1,11 @@
 import express from 'express';
 const router = express.Router();
 
-import { registerUser } from '../controllers/User.js';
-import { validateRegisterUser } from '../middleware/validateUser.js';
+import { loginUser, registerUser } from '../controllers/User.js';
+import {
+  validateLoginUser,
+  validateRegisterUser,
+} from '../middleware/validateUser.js';
 import { handleInputErrors } from '../middleware/errors.js';
 
 router.post(
@@ -11,5 +14,7 @@ router.post(
   handleInputErrors,
   registerUser
 );
+
+router.post('/auth/login', validateLoginUser, handleInputErrors, loginUser);
 
 export default router;
