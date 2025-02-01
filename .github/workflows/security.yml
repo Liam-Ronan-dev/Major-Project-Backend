@@ -1,0 +1,41 @@
+name: 🛡️ Security Scan 🔍
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Node.js 🟢
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Dependencies 📦
+        run: npm ci
+
+      - name: 🛡️ Display Snyk ASCII Logo & Run Security Scan
+        run: |
+          echo "   _____       _   _ _   "
+          echo "  / ____|     | | (_) |  "
+          echo " | (___  _   _| |_ _| |_ "
+          echo "  \___ \| | | | __| | __|"
+          echo "  ____) | |_| | |_| | |_ "
+          echo " |_____/ \__,_|\__|_|\__|"
+          echo " Running Snyk Security Scan..."
+          snyk test
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+          
+      - name: 📡 Upload to Snyk for Continuous Monitoring
+        run: snyk monitor
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
