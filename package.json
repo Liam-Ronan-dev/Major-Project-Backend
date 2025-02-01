@@ -9,7 +9,8 @@
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "format": "prettier --write \"src/**/*.{js,ts}\" \"tests/**/*.{js,ts}\"",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+    "prepare": "husky"
   },
   "keywords": [],
   "author": "",
@@ -20,19 +21,31 @@
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "express-validator": "^7.2.1",
+    "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.9.5",
     "morgan": "^1.10.0"
   },
   "devDependencies": {
+    "@commitlint/cli": "^19.6.1",
+    "@commitlint/config-conventional": "^19.6.0",
     "@eslint/js": "^9.19.0",
     "eslint": "^9.19.0",
     "eslint-config-prettier": "^10.0.1",
     "eslint-plugin-jest": "^28.11.0",
     "globals": "^15.14.0",
+    "husky": "^9.1.7",
     "jest": "^29.7.0",
+    "lint-staged": "^15.4.3",
     "nodemon": "^3.1.9",
     "prettier": "^3.4.2",
     "supertest": "^7.0.0"
+  },
+  "lint-staged": {
+    "*.js": [
+      "prettier --write \"src/**/*.{js,ts}\" \"tests/**/*.{js,ts}\"",
+      "eslint --fix",
+      "git add ."
+    ]
   }
 }

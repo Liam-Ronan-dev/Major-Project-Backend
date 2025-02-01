@@ -1,6 +1,7 @@
 import cors from 'cors';
 import * as dotenv from 'dotenv';
 import express from 'express';
+import helmet from 'helmet';
 import morgan from 'morgan';
 import { connectDB } from './config/db.js';
 import userRoutes from './routes/User.js';
@@ -19,6 +20,9 @@ app.use(
     credentials: true,
   })
 );
+
+// Apply Helmet to Secure HTTP Headers
+app.use(helmet());
 
 app.use(morgan('dev'));
 app.use(express.json());
