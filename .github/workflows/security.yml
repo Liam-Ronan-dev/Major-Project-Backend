@@ -9,6 +9,7 @@ on:
 
 jobs:
   security:
+    name: 🔍 Security Scan (Snyk)
     runs-on: ubuntu-latest
     steps:
       - name: 📥 Checkout Code
@@ -29,8 +30,8 @@ jobs:
           restore-keys: snyk-${{ runner.os }}-
 
       - name: 🔧 Install Snyk CLI (Only If Not Cached)
-        run: npm install -g snyk
         if: steps.snyk-cache.outputs.cache-hit != 'true'
+        run: npm install -g snyk
 
       - name: 🛡️ Display Snyk ASCII Logo & Run Security Scan
         run: |
@@ -46,7 +47,7 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
   sonarcloud:
-    name: SonarCloud Scan
+    name: 🔎 SonarCloud Scan
     runs-on: ubuntu-latest
     steps:
       - name: 📥 Checkout Code
