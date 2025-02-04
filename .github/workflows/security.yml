@@ -44,3 +44,25 @@ jobs:
           snyk test --severity-threshold=high || echo "⚠️ Medium/low vulnerabilities detected but not failing the build"
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+  sonarcloud:
+    name: SonarCloud Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Required for SonarCloud to analyze commit history
+
+      - name: 🔎 Run SonarCloud Analysis
+        uses: SonarSource/sonarqube-scan-action@v4
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: "https://sonarcloud.io"
+
+      # OPTIONAL: Fail the workflow if SonarCloud Quality Gate is not met
+      - name: 🚦 SonarCloud Quality Gate Check
+        uses: SonarSource/sonarqube-quality-gate-action@master
+        timeout-minutes: 5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
