@@ -1,13 +1,19 @@
 import express from 'express';
 const router = express.Router();
 
-import { loginUser, registerUser } from '../controllers/User.js';
+import {
+  loginUser,
+  logoutUser,
+  refreshAccessToken,
+  registerUser,
+} from '../controllers/User.js';
 import {
   validateLoginUser,
   validateRegisterUser,
 } from '../Validators/validateUser.js';
 import { handleInputErrors } from '../middleware/errors.js';
 
+// Register Route
 router.post(
   '/auth/register',
   validateRegisterUser,
@@ -15,6 +21,13 @@ router.post(
   registerUser
 );
 
+// Login Route
 router.post('/auth/login', validateLoginUser, handleInputErrors, loginUser);
+
+// Refresh Token Route
+router.post('/auth/refresh', refreshAccessToken);
+
+// Logout Route
+router.post('/auth/logout', logoutUser);
 
 export default router;

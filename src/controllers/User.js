@@ -1,7 +1,14 @@
 import { User } from '../models/User.js';
-import { createJWT, hashField, compareField } from '../modules/auth.js';
+import { RefreshToken } from '../models/RefreshToken.js';
+import {
+  createJWT,
+  hashField,
+  compareField,
+  createRefreshToken,
+  verifyToken,
+} from '../modules/auth.js';
 
-// Register A User (Optimized)
+// Register A User
 export const registerUser = async (req, res, next) => {
   const { email, password, licenseNumber, role } = req.body;
 
@@ -11,7 +18,7 @@ export const registerUser = async (req, res, next) => {
       return res.status(409).json({ message: 'Email already exists' });
     }
 
-    // Check for duplicate license number before hashing
+    // Check for duplicate license number before hashing - check This again!
     const users = await User.find();
     for (const user of users) {
       const isMatch = await compareField(licenseNumber, user.licenseNumber);
@@ -32,7 +39,7 @@ export const registerUser = async (req, res, next) => {
       password: hashedPassword,
       licenseNumber: hashedLicenseNumber,
       role: role.toLowerCase(),
-      isVerified: true, // ✅ Set before saving (No second save required)
+      isVerified: true, // Set before saving (No second save required)
     });
 
     // Save user to database (Only once!)
@@ -53,12 +60,15 @@ export const registerUser = async (req, res, next) => {
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: error.message });
+    res
+      .status(500)
+      .json({ message: 'Registration failed.', error: error.message });
     // Pass the error to the next middleware - error.js in middleware folder
     next(error);
   }
 };
 
+// login User Function
 export const loginUser = async (req, res, next) => {
   const { email, password } = req.body;
 
@@ -73,11 +83,23 @@ export const loginUser = async (req, res, next) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    const token = createJWT(user);
+    const accessToken = createJWT(user);
+    const refreshToken = createRefreshToken(user);
+
+    //Store refresh token in database
+    await RefreshToken.create({ userId: user._id, token: refreshToken });
+    await user.save();
+
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: true, // send over https
+      sameSite: 'Strict',
+    });
 
     return res.status(200).json({
       message: 'Login successful',
-      token,
+      accessToken,
+      refreshToken,
       user: {
         id: user._id,
         email: user.email,
@@ -88,5 +110,74 @@ export const loginUser = async (req, res, next) => {
     console.error(error);
     res.status(500).json({ message: 'Login Failed', error: error.message });
     next(error);
+  }
+};
+
+// Refresh access token
+export const refreshAccessToken = async (req, res) => {
+  const { refreshToken } = req.cookies;
+
+  if (!refreshToken)
+    return res.status(401).json({ message: 'No refresh token provided' });
+
+  try {
+    const decoded = verifyToken(
+      refreshToken,
+      process.env.JWT_REFRESH_TOKEN_SECRET
+    );
+
+    if (!decoded || !decoded.id) {
+      return res.status(403).json({ message: 'Invalid refresh token' });
+    }
+
+    // Check if refresh token exists
+    const storedToken = await RefreshToken.findOne({
+      token: refreshToken,
+      userId: decoded.id,
+    });
+
+    if (!storedToken) {
+      return res.status(403).json({ message: 'Unauthorized refresh token.' });
+    }
+
+    // Retrieve the full user from DB
+    const user = await User.findById(decoded.id);
+    if (!user) {
+      return res.status(403).json({ message: 'User not found.' });
+    }
+
+    // Generate a new access token
+    const newAccessToken = createJWT(user);
+
+    res.json({ accessToken: newAccessToken });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: 'Error refreshing token.', error: error.message });
+  }
+};
+
+// Logout User Function
+export const logoutUser = async (req, res) => {
+  const { refreshToken } = req.cookies;
+
+  if (!refreshToken) {
+    return res.status(400).json({ message: 'No refresh token found ' });
+  }
+
+  try {
+    // Delete the refresh token from the database
+    await RefreshToken.findOneAndDelete({ token: refreshToken });
+
+    // Clear refresh token cookie
+    res.clearCookie('refreshToken', {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'Strict',
+    });
+
+    res.json({ message: 'Logged out successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Logout failed', error: error.message });
   }
 };

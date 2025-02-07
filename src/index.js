@@ -1,6 +1,7 @@
 import cors from 'cors';
 import * as dotenv from 'dotenv';
 import express from 'express';
+import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import { connectDB } from './config/db.js';
@@ -25,7 +26,8 @@ app.use(
 app.use(helmet());
 
 app.use(morgan('dev'));
-app.use(express.json());
+app.use(express.json()); // Parse JSON Requests
+app.use(cookieParser()); // Parse cookies
 app.use(express.urlencoded({ extended: true }));
 
 app.get('/api/health', (req, res) => {

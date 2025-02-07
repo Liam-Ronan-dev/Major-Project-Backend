@@ -23,6 +23,28 @@ export const createJWT = (user) => {
   return token;
 };
 
+// Create a Refresh token - Saves the user logging in again after the expiry of the JWT token above
+export const createRefreshToken = (user) => {
+  const refreshToken = jwt.sign(
+    { id: user._id },
+    process.env.JWT_REFRESH_TOKEN_SECRET,
+    {
+      subject: 'refreshToken',
+      expiresIn: '7d',
+    }
+  );
+  return refreshToken;
+};
+
+export const verifyToken = (token, secret) => {
+  try {
+    return jwt.verify(token, secret);
+  } catch (err) {
+    console.log(err);
+    return null; // if token is expired/invalid
+  }
+};
+
 // Protect Middleware
 export const ensureAuthenticated = (req, res, next) => {
   const bearer = req.headers.authorization;
@@ -36,18 +58,12 @@ export const ensureAuthenticated = (req, res, next) => {
 
   // Extract only token part
   const token = bearer.split(' ')[1];
+  const decodedToken = verifyToken(token, process.env.JWT_SECRET);
 
-  try {
-    // Verify token
-    const user = jwt.verify(token, process.env.JWT_SECRET);
-
-    // Attach the user ID to `req.user`
-    req.user = { id: user.id };
-
-    // Proceed to the next middleware
-    next();
-  } catch (err) {
-    console.error(`Error verifying the token: ${err}`);
-    return res.status(401).json({ message: 'Access Token invalid or expired' });
+  if (!decodedToken) {
+    return res.status(401).json({ message: 'Invalid or expired token' });
   }
+
+  req.user = decodedToken;
+  next();
 };
