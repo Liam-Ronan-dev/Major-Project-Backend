@@ -1,10 +1,7 @@
 import { body } from 'express-validator';
-import { handleInputErrors } from './errors.js'; // ✅ Import existing error handler
+import { handleInputErrors } from '../middleware/errors.js'; // ✅ Import existing error handler
 
-// ✅ Validation rules for user registration
-export const validateRegisterUser = [
-  body('email').isEmail().withMessage('Invalid email format').normalizeEmail(),
-
+export const checkPassword = [
   body('password')
     .isLength({ min: 8, max: 128 })
     .withMessage('Password must be at least 8 characters long')
@@ -14,6 +11,13 @@ export const validateRegisterUser = [
     .withMessage('Password must contain at least one uppercase letter')
     .matches(/[!@#$%^&*(),.?":{}|<>]/)
     .withMessage('Password must contain at least one special character'),
+];
+
+// Validation rules for user registration
+export const validateRegisterUser = [
+  body('email').isEmail().withMessage('Invalid email format').normalizeEmail(),
+
+  checkPassword,
 
   body('licenseNumber')
     .isLength({ min: 6, max: 6 })
@@ -25,19 +29,10 @@ export const validateRegisterUser = [
     .isIn(['doctor', 'pharmacist'])
     .withMessage('Invalid role. Choose "doctor" or "pharmacist"'),
 
-  handleInputErrors, // ✅ Use existing error handler instead of repeating logic
+  handleInputErrors, // Use existing error handler instead of repeating logic
 ];
 
 export const validateLoginUser = [
   body('email').isEmail().withMessage('Invalid email format').normalizeEmail(),
-
-  body('password')
-    .isLength({ min: 8, max: 128 })
-    .withMessage('Password must be at least 8 characters long')
-    .matches(/\d/)
-    .withMessage('Password must contain at least one number')
-    .matches(/[A-Z]/)
-    .withMessage('Password must contain at least one uppercase letter')
-    .matches(/[!@#$%^&*(),.?":{}|<>]/)
-    .withMessage('Password must contain at least one special character'),
+  checkPassword,
 ];

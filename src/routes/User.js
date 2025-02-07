@@ -5,7 +5,7 @@ import { loginUser, registerUser } from '../controllers/User.js';
 import {
   validateLoginUser,
   validateRegisterUser,
-} from '../middleware/validateUser.js';
+} from '../Validators/validateUser.js';
 import { handleInputErrors } from '../middleware/errors.js';
 
 router.post(
