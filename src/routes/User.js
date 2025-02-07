@@ -1,5 +1,4 @@
 import express from 'express';
-const router = express.Router();
 
 import {
   loginUser,
@@ -12,6 +11,8 @@ import {
   validateRegisterUser,
 } from '../Validators/validateUser.js';
 import { handleInputErrors } from '../middleware/errors.js';
+
+const router = express.Router();
 
 // Register Route
 router.post(

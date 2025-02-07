@@ -40,6 +40,8 @@ export const registerUser = async (req, res, next) => {
       licenseNumber: hashedLicenseNumber,
       role: role.toLowerCase(),
       isVerified: true, // Set before saving (No second save required)
+      mfaEnabled: false,
+      mfaSecret: null,
     });
 
     // Save user to database (Only once!)

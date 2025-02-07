@@ -26,7 +26,10 @@
     "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.9.5",
-    "morgan": "^1.10.0"
+    "morgan": "^1.10.0",
+    "node-cache": "^5.1.2",
+    "otplib": "^12.0.1",
+    "qrcode": "^1.5.4"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.6.1",

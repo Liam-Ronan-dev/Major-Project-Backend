@@ -5,7 +5,7 @@ import {
   createPrescription,
   getAllPrescriptions,
   getSinglePrescription,
-} from '../controllers/prescription.js';
+} from '../controllers/Prescription.js';
 
 router.post('/prescriptions', createPrescription);
 router.get('/prescriptions', getAllPrescriptions);

@@ -18,7 +18,7 @@ export const compareField = async (field, hashedField) => {
 export const createJWT = (user) => {
   const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
     subject: 'AccessAPI',
-    expiresIn: '1h',
+    expiresIn: process.env.JWT_SECRET_EXPIRES_IN,
   });
   return token;
 };
@@ -30,7 +30,7 @@ export const createRefreshToken = (user) => {
     process.env.JWT_REFRESH_TOKEN_SECRET,
     {
       subject: 'refreshToken',
-      expiresIn: '7d',
+      expiresIn: process.env.JWT_REFRESH_TOKEN_SECRET_EXPIRES_IN,
     }
   );
   return refreshToken;

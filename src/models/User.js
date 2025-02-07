@@ -30,6 +30,13 @@ const UserSchema = new mongoose.Schema({
     type: Boolean,
     default: false, // will be set to true after admin verification
   },
+  mfaEnabled: {
+    type: Boolean,
+    default: false,
+  },
+  mfaSecret: {
+    type: String,
+  },
 });
 
 export const User = mongoose.model('User', UserSchema);

@@ -4,10 +4,13 @@ import express from 'express';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import morgan from 'morgan';
-import { connectDB } from './config/db.js';
-import userRoutes from './routes/User.js';
 
-import prescriptionRoutes from './routes/prescription.js';
+import { connectDB } from './config/db.js';
+
+import prescriptionRoutes from './routes/Prescription.js';
+import userRoutes from './routes/User.js';
+import MFARoutes from './routes/MFA.js';
+
 import { errorHandler } from './middleware/errors.js';
 
 const app = express();
@@ -16,7 +19,7 @@ dotenv.config();
 // Allowing the Front-end to make requests to the Backend API
 app.use(
   cors({
-    origin: 'http://localhost:5173/',
+    origin: 'http://localhost:5173',
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true,
   })
@@ -36,6 +39,7 @@ app.get('/api/health', (req, res) => {
 
 app.use('/api', userRoutes);
 app.use('/api', prescriptionRoutes);
+app.use('/api', MFARoutes);
 
 app.use(errorHandler);
 connectDB();
