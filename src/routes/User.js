@@ -3,6 +3,7 @@ import express from 'express';
 import {
   loginUser,
   logoutUser,
+  mfaLogin,
   refreshAccessToken,
   registerUser,
 } from '../controllers/User.js';
@@ -24,6 +25,9 @@ router.post(
 
 // Login Route
 router.post('/auth/login', validateLoginUser, handleInputErrors, loginUser);
+
+// MFA Login
+router.post('/auth/login/mfa', mfaLogin);
 
 // Refresh Token Route
 router.post('/auth/refresh', refreshAccessToken);

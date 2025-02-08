@@ -7,6 +7,11 @@ import {
   createRefreshToken,
   verifyToken,
 } from '../modules/auth.js';
+import crypto from 'crypto';
+import NodeCache from 'node-cache';
+import { authenticator } from 'otplib';
+
+const cache = new NodeCache();
 
 // Register A User
 export const registerUser = async (req, res, next) => {
@@ -85,6 +90,28 @@ export const loginUser = async (req, res, next) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
+    //Check if user has MFA Enabled - use tempToken
+    // Other wise log in regularly with JWTs
+    if (user.mfaEnabled) {
+      const tempToken = crypto.randomUUID();
+      const cacheKey = `temp_token:${tempToken}`; // Hardcoded prefix
+
+      const expiresInSeconds = 180;
+
+      cache.set(cacheKey, user._id, expiresInSeconds);
+
+      console.log(
+        `✅ Stored tempToken: ${tempToken} for ${expiresInSeconds} seconds`
+      );
+      console.log('📌 Cached tokens:', cache.keys());
+
+      return res.status(200).json({
+        tempToken,
+        expiresInSeconds,
+      });
+    }
+
+    // Normal Login (No MFA)
     const accessToken = createJWT(user);
     const refreshToken = createRefreshToken(user);
 
@@ -112,6 +139,74 @@ export const loginUser = async (req, res, next) => {
     console.error(error);
     res.status(500).json({ message: 'Login Failed', error: error.message });
     next(error);
+  }
+};
+
+// MFA Login Function
+export const mfaLogin = async (req, res) => {
+  try {
+    const { tempToken, totp } = req.body;
+
+    if (!tempToken || !totp) {
+      return res
+        .status(422)
+        .json({ message: 'Please fill in all fields (tempToken & TOTP)' });
+    }
+
+    const cacheKey = `temp_token:${tempToken}`;
+    const userId = cache.get(cacheKey);
+
+    if (!userId) {
+      return res.status(401).json({
+        message: 'The provided temporary token is incorrect or expired',
+      });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const verified = authenticator.verify({
+      token: totp,
+      secret: user.mfaSecret,
+    });
+
+    if (!verified) {
+      return res
+        .status(401)
+        .json({ message: 'The provided TOTP is incorrect or expired' });
+    }
+
+    // Delete tempToken after use
+    cache.del(cacheKey);
+    console.log(`✅ tempToken deleted: ${tempToken}`);
+
+    const accessToken = createJWT(user);
+    const refreshToken = createRefreshToken(user);
+
+    //Store refresh token in database
+    await RefreshToken.create({ userId: user._id, token: refreshToken });
+    await user.save();
+
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: true, // send over https
+      sameSite: 'Strict',
+    });
+
+    return res.status(200).json({
+      message: 'Login successful',
+      accessToken,
+      refreshToken,
+      user: {
+        id: user._id,
+        email: user.email,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
   }
 };
 

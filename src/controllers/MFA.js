@@ -42,3 +42,33 @@ export const generateMFASecret = async (req, res) => {
       .json({ message: 'Error generating MFA secret', error: error.message });
   }
 };
+
+export const mfaValidate = async (req, res) => {
+  const { totp } = req.body;
+
+  try {
+    if (!totp) return res.status(422).json({ message: 'TOTP is required' });
+
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const verified = authenticator.verify({
+      token: totp,
+      secret: user.mfaSecret,
+    });
+
+    if (!verified) {
+      return res
+        .status(400)
+        .json({ message: 'TOTP is not correct or expired' });
+    }
+
+    await User.updateOne({ _id: req.user.id }, { $set: { mfaEnabled: true } });
+
+    return res.status(200).json({ message: 'TOTP Validated successfully' });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
