@@ -10,6 +10,7 @@ import { connectDB } from './config/db.js';
 import prescriptionRoutes from './routes/Prescription.js';
 import userRoutes from './routes/User.js';
 import MFARoutes from './routes/MFA.js';
+import patientRoutes from './routes/Patient.js';
 
 import { errorHandler } from './middleware/errors.js';
 
@@ -40,6 +41,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api', userRoutes);
 app.use('/api', prescriptionRoutes);
 app.use('/api', MFARoutes);
+app.use('/api', patientRoutes);
 
 app.use(errorHandler);
 connectDB();

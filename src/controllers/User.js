@@ -183,6 +183,7 @@ export const mfaLogin = async (req, res) => {
     console.log(`✅ tempToken deleted: ${tempToken}`);
 
     const accessToken = createJWT(user);
+    console.log('✅ MFA Login Successful - User:', user);
     const refreshToken = createRefreshToken(user);
 
     //Store refresh token in database

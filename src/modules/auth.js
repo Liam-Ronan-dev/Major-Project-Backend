@@ -16,10 +16,14 @@ export const compareField = async (field, hashedField) => {
 
 // Create JWT - using JWT secret
 export const createJWT = (user) => {
-  const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-    subject: 'AccessAPI',
-    expiresIn: process.env.JWT_SECRET_EXPIRES_IN,
-  });
+  const token = jwt.sign(
+    { id: user._id, role: user.role },
+    process.env.JWT_SECRET,
+    {
+      subject: 'AccessAPI',
+      expiresIn: process.env.JWT_SECRET_EXPIRES_IN,
+    }
+  );
   return token;
 };
 
