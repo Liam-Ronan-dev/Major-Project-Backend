@@ -1,6 +1,7 @@
 import express from 'express';
 import { ensureAuthenticated } from '../modules/auth.js';
 import { authorizeRoles } from '../middleware/auth.js';
+import { verifyOwnership } from '../middleware/auth.js';
 import {
   createPatient,
   deletePatient,
@@ -24,6 +25,7 @@ router.get(
   '/patient/:id',
   ensureAuthenticated,
   authorizeRoles('doctor', 'pharmacist'),
+  verifyOwnership('Patient'),
   getPatientById
 );
 
@@ -40,6 +42,7 @@ router.put(
   '/patient/:id',
   ensureAuthenticated,
   authorizeRoles('doctor'),
+  verifyOwnership('Patient'),
   updatePatient
 );
 
@@ -48,6 +51,7 @@ router.delete(
   '/patient/:id',
   ensureAuthenticated,
   authorizeRoles('doctor'),
+  verifyOwnership('Patient'),
   deletePatient
 );
 

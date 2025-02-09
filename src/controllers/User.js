@@ -100,11 +100,6 @@ export const loginUser = async (req, res, next) => {
 
       cache.set(cacheKey, user._id, expiresInSeconds);
 
-      console.log(
-        `✅ Stored tempToken: ${tempToken} for ${expiresInSeconds} seconds`
-      );
-      console.log('📌 Cached tokens:', cache.keys());
-
       return res.status(200).json({
         tempToken,
         expiresInSeconds,
@@ -180,10 +175,8 @@ export const mfaLogin = async (req, res) => {
 
     // Delete tempToken after use
     cache.del(cacheKey);
-    console.log(`✅ tempToken deleted: ${tempToken}`);
 
     const accessToken = createJWT(user);
-    console.log('✅ MFA Login Successful - User:', user);
     const refreshToken = createRefreshToken(user);
 
     //Store refresh token in database

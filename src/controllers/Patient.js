@@ -3,13 +3,29 @@ import { Patient } from '../models/Patient.js';
 // Create new Patient function - for Doctor role
 export const createPatient = async (req, res) => {
   try {
-    const { firstName, lastName, dateOfBirth } = req.body;
+    const {
+      firstName,
+      lastName,
+      dateOfBirth,
+      gender,
+      phoneNumber,
+      email,
+      address,
+      medicalHistory,
+      emergencyContact,
+    } = req.body;
 
     const patient = await Patient.create({
       firstName,
       lastName,
       dateOfBirth,
-      doctorId: req.user.id, // Assign doctor automatically
+      gender,
+      phoneNumber,
+      email,
+      address,
+      medicalHistory,
+      emergencyContact,
+      doctorId: req.user.id,
     });
 
     res.status(201).json({
@@ -27,43 +43,64 @@ export const createPatient = async (req, res) => {
 export const updatePatient = async (req, res) => {
   try {
     const { id } = req.params;
-    const { firstName, lastName, dateOfBirth } = req.body;
+    const updatedPatient = await Patient.findByIdAndUpdate(
+      id,
+      { $set: req.body },
+      { new: true, runValidators: true }
+    );
 
-    const patient = await Patient.findById(id);
-    if (!patient) return res.status(404).json({ message: 'Patient not found' });
+    if (!updatedPatient)
+      return res.status(404).json({ message: 'Patient not found' });
 
-    // Only update fields that are provided
-    patient.firstName = firstName || patient.firstName;
-    patient.lastName = lastName || patient.lastName;
-    patient.dateOfBirth = dateOfBirth || patient.dateOfBirth;
-
-    await patient.save();
-
-    res.status(200).json({
-      data: patient,
-      message: 'Patient updated successfully',
-    });
+    res
+      .status(200)
+      .json({ data: updatedPatient, message: 'Patient updated successfully' });
   } catch (error) {
-    res.status(500).json({
-      message: 'Error updating patient',
-      error: error.message,
-    });
+    res
+      .status(500)
+      .json({ message: 'Error updating patient', error: error.message });
   }
 };
 
 // Get all patients (Doctors & Pharmacists)
 export const getAllPatients = async (req, res) => {
   try {
-    const patients = await Patient.find().populate({
-      path: 'prescriptions',
-      model: 'Prescription',
-      select: 'diagnosis',
-    });
+    let patients;
 
-    if (!patients) {
-      return res
-        .status(404)
-        .json({ message: 'Currently, no archived patients' });
+    if (req.user.role === 'doctor') {
+      // Only fetch patients assigned to this doctor
+      patients = await Patient.find({ doctorId: req.user.id })
+        .populate({
+          path: 'prescriptions',
+          model: 'Prescription',
+          select: 'diagnosis pharmacistId',
+        })
+        .populate({
+          path: 'doctorId',
+          model: 'User',
+          select: 'email',
+        });
+    } else if (req.user.role === 'pharmacist') {
+      // Only fetch patients with assigned prescriptions
+      patients = await Patient.find({
+        prescriptions: { $elemMatch: { pharmacistId: req.user.id } },
+      })
+        .populate({
+          path: 'prescriptions',
+          model: 'Prescription',
+          select: 'diagnosis pharmacistId',
+        })
+        .populate({
+          path: 'doctorId',
+          model: 'User',
+          select: 'email',
+        });
+    } else {
+      return res.status(403).json({ message: 'Unauthorized' });
+    }
+
+    if (!patients.length) {
+      return res.status(404).json({ message: 'No patients found' });
     }
 
     res.status(200).json({
@@ -71,10 +108,8 @@ export const getAllPatients = async (req, res) => {
       data: patients,
     });
   } catch (error) {
-    res.status(500).json({
-      message: 'Error fetching patients',
-      error: error.message,
-    });
+    console.error('Error fetching patients:', error);
+    res.status(500).json({ message: 'Failed to fetch patients' });
   }
 };
 
@@ -83,17 +118,23 @@ export const getPatientById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const patient = await Patient.findById(id).populate({
-      path: 'prescriptions',
-      model: 'Prescription',
-      select: 'diagnosis',
-    });
+    const patient = await Patient.findById(id)
+      .populate({
+        path: 'prescriptions',
+        model: 'Prescription',
+        select: 'diagnosis',
+      })
+      .populate({
+        path: 'doctorId',
+        model: 'User',
+        select: 'email',
+      });
 
     if (!patient) return res.status(404).json({ message: 'Patient not found' });
 
     res.status(200).json({
-      data: patient,
-      message: `Successfully retrieved the ${patient.firstName}`,
+      data: patient, // Ensure decryption
+      message: `Successfully retrieved ${patient.firstName}`,
     });
   } catch (error) {
     res.status(500).json({

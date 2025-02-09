@@ -7,10 +7,10 @@ import morgan from 'morgan';
 
 import { connectDB } from './config/db.js';
 
-import prescriptionRoutes from './routes/Prescription.js';
 import userRoutes from './routes/User.js';
 import MFARoutes from './routes/MFA.js';
 import patientRoutes from './routes/Patient.js';
+import prescriptionRoutes from './routes/Prescription.js';
 
 import { errorHandler } from './middleware/errors.js';
 
