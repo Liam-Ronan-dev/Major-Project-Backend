@@ -8,7 +8,7 @@ import {
   getAllPrescriptions,
   getPrescriptionById,
   updatePrescription,
-} from '../controllers/Prescription.js';
+} from '../controllers/prescription.js';
 
 const router = express.Router();
 
