@@ -31,7 +31,7 @@ const UserSchema = new mongoose.Schema({
   },
   mfaEnabled: {
     type: Boolean,
-    default: false,
+    default: true,
   },
   mfaSecret: {
     type: String,

@@ -10,6 +10,7 @@ import {
 import crypto from 'crypto';
 import NodeCache from 'node-cache';
 import { authenticator } from 'otplib';
+import qrcode from 'qrcode';
 
 const cache = new NodeCache();
 
@@ -38,6 +39,15 @@ export const registerUser = async (req, res, next) => {
     const hashedPassword = await hashField(password);
     const hashedLicenseNumber = await hashField(licenseNumber);
 
+    // Generate MFA Secret
+    const mfaSecret = authenticator.generateSecret();
+    const mfaURI = authenticator.keyuri(
+      email,
+      'Health-service.click',
+      mfaSecret
+    );
+    const qrCode = await qrcode.toDataURL(mfaURI);
+
     // Create new user (Set `isVerified = true` before saving)
     const user = new User({
       email,
@@ -45,19 +55,16 @@ export const registerUser = async (req, res, next) => {
       licenseNumber: hashedLicenseNumber,
       role: role.toLowerCase(),
       isVerified: true, // Set before saving (No second save required)
-      mfaEnabled: false,
-      mfaSecret: null,
+      mfaEnabled: true,
+      mfaSecret, // Store the MFA secret
     });
 
     // Save user to database (Only once!)
     await user.save();
 
-    // Generate JWT token
-    const token = createJWT(user);
-
     return res.status(201).json({
       message: 'User registered successfully. Verification complete.',
-      token,
+      qrCode,
       user: {
         id: user._id,
         email: user.email,
@@ -90,45 +97,24 @@ export const loginUser = async (req, res, next) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    //Check if user has MFA Enabled - use tempToken
-    // Other wise log in regularly with JWTs
-    if (user.mfaEnabled) {
-      const tempToken = crypto.randomUUID();
-      const cacheKey = `temp_token:${tempToken}`; // Hardcoded prefix
-
-      const expiresInSeconds = 180;
-
-      cache.set(cacheKey, user._id, expiresInSeconds);
-
-      return res.status(200).json({
-        tempToken,
-        expiresInSeconds,
+    if (!user.mfaSecret) {
+      return res.status(403).json({
+        message:
+          'MFA setup is incomplete. Please scan the QR code and verify your MFA first.',
       });
     }
 
-    // Normal Login (No MFA)
-    const accessToken = createJWT(user);
-    const refreshToken = createRefreshToken(user);
+    // MFA is mandatory for all users
+    const tempToken = crypto.randomUUID();
+    const cacheKey = `temp_token:${tempToken}`;
+    const expiresInSeconds = 300;
 
-    //Store refresh token in database
-    await RefreshToken.create({ userId: user._id, token: refreshToken });
-    await user.save();
-
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: true, // send over https
-      sameSite: 'Strict',
-    });
+    cache.set(cacheKey, user._id, expiresInSeconds);
 
     return res.status(200).json({
-      message: 'Login successful',
-      accessToken,
-      refreshToken,
-      user: {
-        id: user._id,
-        email: user.email,
-        role: user.role,
-      },
+      message: 'MFA Required. Enter your TOTP code',
+      tempToken,
+      expiresInSeconds,
     });
   } catch (error) {
     console.error(error);
@@ -181,7 +167,7 @@ export const mfaLogin = async (req, res) => {
 
     //Store refresh token in database
     await RefreshToken.create({ userId: user._id, token: refreshToken });
-    await user.save();
+    // await user.save();
 
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
