@@ -11,7 +11,9 @@ import crypto from 'crypto';
 import NodeCache from 'node-cache';
 import { authenticator } from 'otplib';
 import qrcode from 'qrcode';
+import * as dotenv from 'dotenv';
 
+dotenv.config();
 const cache = new NodeCache();
 
 // Register A User
@@ -107,7 +109,7 @@ export const loginUser = async (req, res, next) => {
     // MFA is mandatory for all users
     const tempToken = crypto.randomUUID();
     const cacheKey = `temp_token:${tempToken}`;
-    const expiresInSeconds = 300;
+    const expiresInSeconds = process.env.TEMP_TOKEN_EXPIRES_IN;
 
     cache.set(cacheKey, user._id, expiresInSeconds);
 

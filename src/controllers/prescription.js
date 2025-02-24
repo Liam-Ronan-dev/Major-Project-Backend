@@ -1,5 +1,6 @@
 import { Prescription } from '../models/Prescription.js';
 import { Patient } from '../models/Patient.js';
+import { v4 as uuidv4 } from 'uuid'; // Import UUID generator
 
 // Create Prescription (Doctors only)
 export const createPrescription = async (req, res) => {
@@ -35,7 +36,11 @@ export const createPrescription = async (req, res) => {
       });
     }
 
+    // ✅ Fix: Generate a unique prescriptionId if it's not provided
+    const prescriptionId = uuidv4(); // Generates a unique ID
+
     const newPrescription = await Prescription.create({
+      prescriptionId,
       patientId,
       doctorId: req.user.id,
       medications,
@@ -55,7 +60,7 @@ export const createPrescription = async (req, res) => {
     });
   } catch (error) {
     console.error('Error creating prescription:', error);
-    res.status(500).json({ message: 'Failed to create prescription' });
+    res.status(500).json({ message: 'failed to create prescription' });
   }
 };
 

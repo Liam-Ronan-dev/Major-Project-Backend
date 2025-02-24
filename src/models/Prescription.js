@@ -1,6 +1,12 @@
 import mongoose from 'mongoose';
+import { v4 as uuidv4 } from 'uuid';
 
 const PrescriptionSchema = new mongoose.Schema({
+  prescriptionId: {
+    type: String,
+    unique: true,
+    default: uuidv4, // ✅ Auto-generate UUID when saving
+  },
   doctorId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
