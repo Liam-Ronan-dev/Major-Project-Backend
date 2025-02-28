@@ -35,7 +35,6 @@ jobs:
         # Create or overwrite a .env file using the secret from GitHub
       - name: '📝 Set Environment Variables'
         run: |
-          touch .env
           echo "${{ secrets.PROD_ENV }}" > .env
           echo "${{ secrets.ENCRYPTION_KEY }}" > .env
           echo "${{ secrets.JWT_REFRESH_TOKEN_SECRET }}" > .env
