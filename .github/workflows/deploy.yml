@@ -37,6 +37,14 @@ jobs:
         run: |
           touch .env
           echo "${{ secrets.PROD_ENV }}" > .env
+          echo "${{ secrets.ENCRYPTION_KEY }}" > .env
+          echo "${{ secrets.JWT_REFRESH_TOKEN_SECRET }}" > .env
+          echo "${{ secrets.JWT_REFRESH_TOKEN_SECRET_EXPIRES_IN }}" > .env
+          echo "${{ secrets.JWT_SECRET }}" > .env
+          echo "${{ secrets.JWT_SECRET_EXPIRES_IN }}" > .env
+          echo "${{ secrets.MONGO_URI }}" > .env
+          echo "${{ secrets.PORT }}" > .env
+          echo "${{ secrets.TEMP_TOKEN_EXPIRES_IN }}" > .env
 
         # Restart the PM2 process named 'BackendAPI'
       - name: '🔄 Restart PM2 Service'

@@ -33,7 +33,8 @@ jobs:
 
         # Ensures commit messages follow conventions - Checks all commits, PRs, pushes
       - name: '📜 Validate commit messages with CommitLint'
-        run: npx commitlint --from=origin/main --verbose || echo "⚠️ CommitLint warnings but continuing."
+        if: github.event_name == 'push'
+        run: npx commitlint --last --verbose
 
       - name: '🎨 Check Code Formatting with Prettier'
         run: npm run format
