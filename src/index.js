@@ -7,10 +7,11 @@ import morgan from 'morgan';
 
 import { connectDB } from './config/db.js';
 
+// Resource Routes
 import userRoutes from './routes/User.js';
-// import MFARoutes from './routes/MFA.js';
 import patientRoutes from './routes/Patient.js';
 import prescriptionRoutes from './routes/prescription.js';
+import appointmentRoutes from './routes/Appointment.js';
 
 import { errorHandler } from './middleware/errors.js';
 
@@ -40,7 +41,7 @@ app.get('/api/health', (req, res) => {
 
 app.use('/api', userRoutes);
 app.use('/api', prescriptionRoutes);
-// app.use('/api', MFARoutes);
+app.use('/api', appointmentRoutes);
 app.use('/api', patientRoutes);
 
 app.use(errorHandler);
