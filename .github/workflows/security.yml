@@ -60,10 +60,3 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: 'https://sonarcloud.io'
-
-      # OPTIONAL: Fail the workflow if SonarCloud Quality Gate is not met
-      # - name: 🚦 SonarCloud Quality Gate Check
-      #   uses: SonarSource/sonarqube-quality-gate-action@master
-      #   timeout-minutes: 5
-      #   env:
-      #     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
