@@ -26,14 +26,15 @@ export const registerUser = async (req, res, next) => {
       return res.status(409).json({ message: 'Email already exists' });
     }
 
-    // Check for duplicate license number before hashing - check This again!
+    // Check for duplicate license number before hashing
+    /**
+     * TODO: Check this again - may be inefficient this way!!
+     */
     const users = await User.find();
     for (const user of users) {
       const isMatch = await compareField(licenseNumber, user.licenseNumber);
       if (isMatch) {
-        return res
-          .status(409)
-          .json({ message: 'License number already exists' });
+        return res.status(409).json({ message: 'License number already exists' });
       }
     }
 
@@ -43,11 +44,7 @@ export const registerUser = async (req, res, next) => {
 
     // Generate MFA Secret
     const mfaSecret = authenticator.generateSecret();
-    const mfaURI = authenticator.keyuri(
-      email,
-      'Health-service.click',
-      mfaSecret
-    );
+    const mfaURI = authenticator.keyuri(email, 'Health-service.click', mfaSecret);
     const qrCode = await qrcode.toDataURL(mfaURI);
 
     // Create new user (Set `isVerified = true` before saving)
@@ -76,9 +73,7 @@ export const registerUser = async (req, res, next) => {
     });
   } catch (error) {
     console.error(error);
-    res
-      .status(500)
-      .json({ message: 'Registration failed.', error: error.message });
+    res.status(500).json({ message: 'Registration failed.', error: error.message });
     // Pass the error to the next middleware - error.js in middleware folder
     next(error);
   }
@@ -101,8 +96,7 @@ export const loginUser = async (req, res, next) => {
 
     if (!user.mfaSecret) {
       return res.status(403).json({
-        message:
-          'MFA setup is incomplete. Please scan the QR code and verify your MFA first.',
+        message: 'MFA setup is incomplete. Please scan the QR code and verify your MFA first.',
       });
     }
 
@@ -131,9 +125,7 @@ export const mfaLogin = async (req, res) => {
     const { tempToken, totp } = req.body;
 
     if (!tempToken || !totp) {
-      return res
-        .status(422)
-        .json({ message: 'Please fill in all fields (tempToken & TOTP)' });
+      return res.status(422).json({ message: 'Please fill in all fields (tempToken & TOTP)' });
     }
 
     const cacheKey = `temp_token:${tempToken}`;
@@ -156,9 +148,7 @@ export const mfaLogin = async (req, res) => {
     });
 
     if (!verified) {
-      return res
-        .status(401)
-        .json({ message: 'The provided TOTP is incorrect or expired' });
+      return res.status(401).json({ message: 'The provided TOTP is incorrect or expired' });
     }
 
     // Delete tempToken after use
@@ -196,14 +186,10 @@ export const mfaLogin = async (req, res) => {
 export const refreshAccessToken = async (req, res) => {
   const { refreshToken } = req.cookies;
 
-  if (!refreshToken)
-    return res.status(401).json({ message: 'No refresh token provided' });
+  if (!refreshToken) return res.status(401).json({ message: 'No refresh token provided' });
 
   try {
-    const decoded = verifyToken(
-      refreshToken,
-      process.env.JWT_REFRESH_TOKEN_SECRET
-    );
+    const decoded = verifyToken(refreshToken, process.env.JWT_REFRESH_TOKEN_SECRET);
 
     if (!decoded || !decoded.id) {
       return res.status(403).json({ message: 'Invalid refresh token' });
@@ -230,9 +216,7 @@ export const refreshAccessToken = async (req, res) => {
 
     res.json({ accessToken: newAccessToken });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: 'Error refreshing token.', error: error.message });
+    res.status(500).json({ message: 'Error refreshing token.', error: error.message });
   }
 };
 

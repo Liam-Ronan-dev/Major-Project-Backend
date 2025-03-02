@@ -12,10 +12,13 @@ import userRoutes from './routes/User.js';
 import patientRoutes from './routes/Patient.js';
 import prescriptionRoutes from './routes/prescription.js';
 import appointmentRoutes from './routes/Appointment.js';
+import medicationRoutes from './routes/Medication.js';
 
 import { errorHandler } from './middleware/errors.js';
 
 const app = express();
+
+// Use env file contents
 dotenv.config();
 
 // Allowing the Front-end to make requests to the Backend API
@@ -30,7 +33,9 @@ app.use(
 // Apply Helmet to Secure HTTP Headers
 app.use(helmet());
 
+// Use a logger to display request status code
 app.use(morgan('dev'));
+
 app.use(express.json()); // Parse JSON Requests
 app.use(cookieParser()); // Parse cookies
 app.use(express.urlencoded({ extended: true }));
@@ -43,6 +48,7 @@ app.use('/api', userRoutes);
 app.use('/api', prescriptionRoutes);
 app.use('/api', appointmentRoutes);
 app.use('/api', patientRoutes);
+app.use('/api', medicationRoutes);
 
 app.use(errorHandler);
 connectDB();

@@ -1,6 +1,6 @@
 import { Patient } from '../models/Patient.js';
 
-// Create new Patient function - for Doctor role
+// Create new Patient (Doctor Only)
 export const createPatient = async (req, res) => {
   try {
     const {
@@ -33,32 +33,26 @@ export const createPatient = async (req, res) => {
       message: `${firstName} successfully created`,
     });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: 'Error creating patient', error: error.message });
+    res.status(500).json({ message: 'Error creating patient', error: error.message });
   }
 };
 
-// Update patient details - for doctor role
+// Update patient details (Doctor Only)
 export const updatePatient = async (req, res) => {
   try {
     const { id } = req.params;
-    const updatedPatient = await Patient.findByIdAndUpdate(
-      id,
-      { $set: req.body },
-      { new: true, runValidators: true }
-    );
+    const updateData = req.body;
 
-    if (!updatedPatient)
-      return res.status(404).json({ message: 'Patient not found' });
+    const updatedPatient = await Patient.findByIdAndUpdate(id, updateData, {
+      new: true,
+      runValidators: true,
+    });
 
-    res
-      .status(200)
-      .json({ data: updatedPatient, message: 'Patient updated successfully' });
+    if (!updatedPatient) return res.status(404).json({ message: 'Patient not found' });
+
+    res.status(200).json({ data: updatedPatient, message: 'Patient updated successfully' });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: 'Error updating patient', error: error.message });
+    res.status(500).json({ message: 'Error updating patient', error: error.message });
   }
 };
 
@@ -76,12 +70,17 @@ export const getAllPatients = async (req, res) => {
           select: 'diagnosis pharmacistId',
         })
         .populate({
+          path: 'appointments',
+          model: 'Appointment',
+          select: 'date status notes',
+        })
+        .populate({
           path: 'doctorId',
           model: 'User',
           select: 'email',
         });
     } else if (req.user.role === 'pharmacist') {
-      // Only fetch patients with assigned prescriptions
+      // Only fetch patients with assigned prescriptions for a pharmacist
       patients = await Patient.find({
         prescriptions: { $elemMatch: { pharmacistId: req.user.id } },
       })
@@ -89,6 +88,11 @@ export const getAllPatients = async (req, res) => {
           path: 'prescriptions',
           model: 'Prescription',
           select: 'diagnosis pharmacistId',
+        })
+        .populate({
+          path: 'appointments',
+          model: 'Appointment',
+          select: 'date status notes',
         })
         .populate({
           path: 'doctorId',
@@ -125,6 +129,11 @@ export const getPatientById = async (req, res) => {
         select: 'diagnosis',
       })
       .populate({
+        path: 'appointments',
+        model: 'Appointment',
+        select: 'date status notes',
+      })
+      .populate({
         path: 'doctorId',
         model: 'User',
         select: 'email',
@@ -133,7 +142,7 @@ export const getPatientById = async (req, res) => {
     if (!patient) return res.status(404).json({ message: 'Patient not found' });
 
     res.status(200).json({
-      data: patient, // Ensure decryption
+      data: patient,
       message: `Successfully retrieved ${patient.firstName}`,
     });
   } catch (error) {

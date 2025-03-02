@@ -53,7 +53,7 @@ const PatientSchema = new mongoose.Schema({
   medicalHistory: [
     {
       condition: { type: String, set: encryptData, get: decryptData },
-      diagnosedAt: Date,
+      diagnosedAt: { type: Date },
       notes: { type: String, set: encryptData, get: decryptData },
     },
   ],
@@ -62,14 +62,13 @@ const PatientSchema = new mongoose.Schema({
     ref: 'User',
     required: true,
   },
+  prescriptions: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Prescription' }],
+  appointments: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Appointment' }],
   emergencyContact: {
     name: { type: String, set: encryptData, get: decryptData },
-    relationship: String,
+    relationship: { type: String, set: encryptData, get: decryptData },
     phoneNumber: { type: String, set: encryptData, get: decryptData },
   },
-  prescriptions: [
-    { type: mongoose.Schema.Types.ObjectId, ref: 'Prescription' },
-  ],
   createdAt: { type: Date, default: Date.now },
 });
 

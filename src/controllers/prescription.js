@@ -5,23 +5,9 @@ import { v4 as uuidv4 } from 'uuid'; // Import UUID generator
 // Create Prescription (Doctors only)
 export const createPrescription = async (req, res) => {
   try {
-    const {
-      patientId,
-      medications,
-      diagnosis,
-      pharmacistId,
-      notes,
-      pharmacyName,
-    } = req.body;
+    const { patientId, medications, diagnosis, pharmacistId, notes, pharmacyName } = req.body;
 
-    if (
-      !patientId ||
-      !medications ||
-      !diagnosis ||
-      !pharmacistId ||
-      !notes ||
-      !pharmacyName
-    ) {
+    if (!patientId || !medications || !diagnosis || !pharmacistId || !notes || !pharmacyName) {
       return res.status(400).json({ message: 'Missing required fields' });
     }
 
@@ -36,7 +22,7 @@ export const createPrescription = async (req, res) => {
       });
     }
 
-    // ✅ Fix: Generate a unique prescriptionId if it's not provided
+    // Generate a unique prescriptionId if it's not provided
     const prescriptionId = uuidv4(); // Generates a unique ID
 
     const newPrescription = await Prescription.create({
@@ -75,14 +61,10 @@ export const updatePrescription = async (req, res) => {
     });
 
     if (!prescription) {
-      return res
-        .status(404)
-        .json({ message: 'Prescription not found or unauthorized' });
+      return res.status(404).json({ message: 'Prescription not found or unauthorized' });
     }
 
-    res
-      .status(200)
-      .json({ message: 'Prescription updated', data: prescription });
+    res.status(200).json({ message: 'Prescription updated', data: prescription });
   } catch (error) {
     console.error('Error updating prescription:', error);
     res.status(500).json({ message: 'Failed to update prescription' });
@@ -97,15 +79,10 @@ export const deletePrescription = async (req, res) => {
     const prescription = await Prescription.findByIdAndDelete(id);
 
     if (!prescription) {
-      return res
-        .status(404)
-        .json({ message: 'Prescription not found or unauthorized' });
+      return res.status(404).json({ message: 'Prescription not found or unauthorized' });
     }
 
-    await Patient.updateOne(
-      { _id: prescription.patientId },
-      { $pull: { prescriptions: id } }
-    );
+    await Patient.updateOne({ _id: prescription.patientId }, { $pull: { prescriptions: id } });
 
     res.status(200).json({ message: 'Prescription deleted successfully' });
   } catch (error) {

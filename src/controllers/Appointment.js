@@ -19,9 +19,7 @@ export const createAppointment = async (req, res) => {
     });
 
     if (!patient) {
-      return res
-        .status(403)
-        .json({ message: 'Unauthorized: You do not own this patient' });
+      return res.status(403).json({ message: 'Unauthorized: You do not own this patient' });
     }
 
     const newAppointment = await Appointment.create({
@@ -31,6 +29,10 @@ export const createAppointment = async (req, res) => {
       status,
       notes,
     });
+
+    // When doctor creates an appointment, this will update the patient data with the new appointment
+    patient.appointments.push(newAppointment._id);
+    await patient.save();
 
     res.status(201).json({
       message: 'Appointment created successfully',
@@ -88,16 +90,14 @@ export const updateAppointment = async (req, res) => {
     const { id } = req.params;
     const { date, status, notes } = req.body;
 
-    // ✅ Ensure required fields are present when updating
+    // Ensure required fields are present when updating
     if (!date || !status || !notes) {
-      return res
-        .status(400)
-        .json({ message: 'All fields are required: date, status, notes' });
+      return res.status(400).json({ message: 'All fields are required: date, status, notes' });
     }
 
     const updatedAppointment = await Appointment.findByIdAndUpdate(
       id,
-      { date, status, notes, updatedAt: Date.now() },
+      { date, status, notes },
       { new: true }
     );
 
@@ -120,7 +120,10 @@ export const deleteAppointment = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const deletedAppointment = await Appointment.findByIdAndDelete(id);
+    const deletedAppointment = await Appointment.findByIdAndDelete({
+      _id: id,
+      doctorId: req.user.id, // Only delete if the doctor owns it
+    });
 
     if (!deletedAppointment) {
       return res.status(404).json({ message: 'Appointment not found' });

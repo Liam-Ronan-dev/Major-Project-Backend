@@ -15,7 +15,10 @@ export const authorizeRoles = (...roles) => {
   };
 };
 
-// Ownership middleware
+// Ownership middleware - To verify that the logged in user can only access their own created resources
+/**
+ * !
+ */
 export const verifyOwnership = (modelType) => {
   return async (req, res, next) => {
     try {
@@ -32,7 +35,7 @@ export const verifyOwnership = (modelType) => {
         return res.status(400).json({ message: 'Invalid model type' });
       }
 
-      // ✅ Fetch the record from the database (Fix: Added `await`)
+      // Fetch the record from the database
       const record = await model.findById(id);
 
       if (!record) {
@@ -41,7 +44,7 @@ export const verifyOwnership = (modelType) => {
 
       console.log(`Ownership verification for ${modelType}:`, record);
 
-      // ✅ Doctor Ownership Check (Patients, Appointments, Prescriptions)
+      // Doctor Ownership Check (Patients, Appointments, Prescriptions)
       if (req.user.role === 'doctor') {
         if (
           ['Patient', 'Appointment', 'Prescription'].includes(modelType) &&
