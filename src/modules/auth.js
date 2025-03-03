@@ -1,5 +1,9 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
+import * as dotenv from 'dotenv';
+
+// Use env file contents
+dotenv.config();
 
 const saltRounds = 10;
 
@@ -16,27 +20,19 @@ export const compareField = async (field, hashedField) => {
 
 // Create JWT - using JWT secret
 export const createJWT = (user) => {
-  const token = jwt.sign(
-    { id: user._id, role: user.role },
-    process.env.JWT_SECRET,
-    {
-      subject: 'AccessAPI',
-      expiresIn: process.env.JWT_SECRET_EXPIRES_IN,
-    }
-  );
+  const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
+    subject: 'AccessAPI',
+    expiresIn: process.env.JWT_SECRET_EXPIRES_IN,
+  });
   return token;
 };
 
 // Create a Refresh token - Saves the user logging in again after the expiry of the JWT token above
 export const createRefreshToken = (user) => {
-  const refreshToken = jwt.sign(
-    { id: user._id },
-    process.env.JWT_REFRESH_TOKEN_SECRET,
-    {
-      subject: 'refreshToken',
-      expiresIn: process.env.JWT_REFRESH_TOKEN_SECRET_EXPIRES_IN,
-    }
-  );
+  const refreshToken = jwt.sign({ id: user._id }, process.env.JWT_REFRESH_TOKEN_SECRET, {
+    subject: 'refreshToken',
+    expiresIn: process.env.JWT_REFRESH_TOKEN_SECRET_EXPIRES_IN,
+  });
   return refreshToken;
 };
 
@@ -55,9 +51,7 @@ export const ensureAuthenticated = (req, res, next) => {
 
   // Check if Authorization header exists and is properly formatted
   if (!bearer || !bearer.startsWith('Bearer ')) {
-    return res
-      .status(401)
-      .json({ message: 'Not authorized. Missing or invalid token' });
+    return res.status(401).json({ message: 'Not authorized. Missing or invalid token' });
   }
 
   // Extract only token part

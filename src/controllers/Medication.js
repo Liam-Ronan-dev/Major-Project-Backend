@@ -32,9 +32,7 @@ export const createMedication = async (req, res) => {
 // Get All medications (Doctor & pharmacist)
 export const getAllMedications = async (req, res) => {
   try {
-    const medications = await Medication.find({
-      pharmacistId: req.user.id,
-    }).populate('pharmacistId', 'email');
+    const medications = await Medication.find().populate('pharmacistId', 'email');
 
     if (!medications.length) {
       return res.status(404).json({ message: 'No medications found' });
@@ -86,9 +84,8 @@ export const updateMedication = async (req, res) => {
   }
 };
 
-/**
- * ✅ Delete a medication (Pharmacists Only)
- */
+// Delete a medication (Pharmacists Only)
+
 export const deleteMedication = async (req, res) => {
   try {
     const { id } = req.params;

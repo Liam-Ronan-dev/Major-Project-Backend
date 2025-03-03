@@ -1,13 +1,21 @@
 import { Prescription } from '../models/Prescription.js';
 import { Patient } from '../models/Patient.js';
-import { v4 as uuidv4 } from 'uuid'; // Import UUID generator
 
 // Create Prescription (Doctors only)
 export const createPrescription = async (req, res) => {
   try {
-    const { patientId, medications, diagnosis, pharmacistId, notes, pharmacyName } = req.body;
+    const { patientId, medications, diagnosis, pharmacistId, pharmacyName, repeats, notes } =
+      req.body;
 
-    if (!patientId || !medications || !diagnosis || !pharmacistId || !notes || !pharmacyName) {
+    if (
+      !patientId ||
+      !medications ||
+      !diagnosis ||
+      !pharmacistId ||
+      !notes ||
+      !pharmacyName ||
+      !repeats
+    ) {
       return res.status(400).json({ message: 'Missing required fields' });
     }
 
@@ -22,18 +30,15 @@ export const createPrescription = async (req, res) => {
       });
     }
 
-    // Generate a unique prescriptionId if it's not provided
-    const prescriptionId = uuidv4(); // Generates a unique ID
-
     const newPrescription = await Prescription.create({
-      prescriptionId,
       patientId,
-      doctorId: req.user.id,
       medications,
       diagnosis,
       pharmacistId,
+      repeats,
       notes,
       pharmacyName,
+      doctorId: req.user.id,
       status: 'Pending',
     });
 
@@ -126,19 +131,15 @@ export const getPrescriptionById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    console.log('Fetching prescription with ID:', id); // 🔍 Log Prescription ID
-
-    const prescription = await Prescription.findById(id).populate({
-      path: 'patientId',
-      select: 'firstName lastName',
-    });
+    const prescription = await Prescription.findById(id)
+      .populate('patientId', 'firstName lastName')
+      .populate('doctorId', 'email')
+      .populate('pharmacistId', 'email');
 
     if (!prescription) {
       console.log('Prescription not found in DB'); // 🔍 Log missing prescription
       return res.status(404).json({ message: 'Prescription not found' });
     }
-
-    console.log('Fetched prescription:', prescription); // 🔍 Log fetched prescription
 
     res.status(200).json({ data: prescription });
   } catch (error) {

@@ -13,12 +13,7 @@ import {
 const router = express.Router();
 
 // Doctors can only create prescriptions
-router.post(
-  '/prescriptions',
-  ensureAuthenticated,
-  authorizeRoles('doctor'),
-  createPrescription
-);
+router.post('/prescriptions', ensureAuthenticated, authorizeRoles('doctor'), createPrescription);
 
 // Doctors can only update their own prescriptions
 router.put(

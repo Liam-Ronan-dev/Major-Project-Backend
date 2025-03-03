@@ -12,14 +12,24 @@ import {
 
 const router = express.Router();
 
-// Pharmacists can create medications
-router.post('/medications', ensureAuthenticated, authorizeRoles('pharmacist'), createMedication);
-
 // Get all medications (Doctors & Pharmacists)
-router.get('/medications', ensureAuthenticated, getAllMedications);
+router.get(
+  '/medications',
+  ensureAuthenticated,
+  authorizeRoles('pharmacist', 'doctor'),
+  getAllMedications
+);
 
 // Get medication by ID (Any doctor or pharmacist)
-router.get('/medication/:id', ensureAuthenticated, getMedicationById);
+router.get(
+  '/medication/:id',
+  ensureAuthenticated,
+  authorizeRoles('pharmacist', 'doctor'),
+  getMedicationById
+);
+
+// Pharmacists can create medications
+router.post('/medications', ensureAuthenticated, authorizeRoles('pharmacist'), createMedication);
 
 // Pharmacists can update only their own medications
 router.put(
