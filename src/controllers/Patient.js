@@ -56,18 +56,40 @@ export const updatePatient = async (req, res) => {
   }
 };
 
-// Get all patients (Doctors & Pharmacists)
 export const getAllPatients = async (req, res) => {
   try {
     let patients;
 
     if (req.user.role === 'doctor') {
-      // Only fetch patients assigned to this doctor
+      // ✅ Fetch patients for the doctor
       patients = await Patient.find({ doctorId: req.user.id })
         .populate({
           path: 'prescriptions',
           model: 'Prescription',
-          select: 'diagnosis pharmacyName medications pharmacistId',
+          populate: [
+            {
+              path: 'items',
+              model: 'Item',
+              populate: [
+                {
+                  path: 'medications',
+                  model: 'Medication',
+                  select: 'name form',
+                },
+                {
+                  path: 'dosages',
+                  model: 'Dosage',
+                  select: 'amount frequency duration notes',
+                },
+              ],
+            },
+            {
+              path: 'pharmacistId',
+              model: 'User',
+              select: 'email',
+            },
+          ],
+          select: 'diagnosis pharmacyName pharmacistId items',
         })
         .populate({
           path: 'appointments',
@@ -80,14 +102,37 @@ export const getAllPatients = async (req, res) => {
           select: 'email',
         });
     } else if (req.user.role === 'pharmacist') {
-      // Only fetch patients with assigned prescriptions for a pharmacist
+      // ✅ Fetch patients where the pharmacist is assigned to prescriptions
       patients = await Patient.find({
-        prescriptions: { $elemMatch: { pharmacistId: req.user.id } },
+        prescriptions: { $exists: true, $not: { $size: 0 } },
       })
         .populate({
           path: 'prescriptions',
           model: 'Prescription',
-          select: 'diagnosis pharmacyName medications pharmacistId',
+          populate: [
+            {
+              path: 'items',
+              model: 'Item',
+              populate: [
+                {
+                  path: 'medications',
+                  model: 'Medication',
+                  select: 'name form',
+                },
+                {
+                  path: 'dosages',
+                  model: 'Dosage',
+                  select: 'amount frequency duration notes',
+                },
+              ],
+            },
+            {
+              path: 'pharmacistId',
+              model: 'User',
+              select: 'email',
+            },
+          ],
+          select: 'diagnosis pharmacyName pharmacistId items',
         })
         .populate({
           path: 'appointments',

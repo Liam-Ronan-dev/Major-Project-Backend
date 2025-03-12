@@ -3,20 +3,19 @@ import { Medication } from '../models/Medication.js';
 // Create a medication (Pharmacist Only)
 export const createMedication = async (req, res) => {
   try {
-    const { name, form, dosage, stock, supplier, price } = req.body;
+    const { name, form, stock, supplier, price } = req.body;
 
-    if (!name || !form || !dosage || !stock || !supplier || !price) {
+    if (!name || !form || !stock || !supplier || !price) {
       return res.status(400).json({ message: 'Missing required fields' });
     }
 
     const newMedication = await Medication.create({
       name,
       form,
-      dosage,
       stock,
       supplier,
       price,
-      pharmacistId: req.user.id, //
+      pharmacistId: req.user.id,
     });
 
     res.status(201).json({
@@ -85,7 +84,6 @@ export const updateMedication = async (req, res) => {
 };
 
 // Delete a medication (Pharmacists Only)
-
 export const deleteMedication = async (req, res) => {
   try {
     const { id } = req.params;
