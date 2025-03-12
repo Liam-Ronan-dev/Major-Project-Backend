@@ -90,18 +90,83 @@ export const createPrescription = async (req, res) => {
 export const updatePrescription = async (req, res) => {
   try {
     const { id } = req.params;
-    const updatedData = req.body;
+    const { patientId, pharmacistId, pharmacyName, generalInstructions, repeats, notes, items } =
+      req.body;
 
-    const prescription = await Prescription.findOneAndUpdate(
-      { _id: id, doctorId: req.user.id },
-      updatedData
-    );
-
+    // ✅ Ensure prescription exists
+    let prescription = await Prescription.findById(id);
     if (!prescription) {
-      return res.status(404).json({ message: 'Prescription not found or unauthorized' });
+      return res.status(404).json({ message: 'Prescription not found' });
     }
 
-    res.status(200).json({ message: 'Prescription updated', data: prescription });
+    // ✅ Update prescription fields
+    prescription.patientId = patientId;
+    prescription.pharmacistId = pharmacistId;
+    prescription.pharmacyName = pharmacyName;
+    prescription.generalInstructions = generalInstructions;
+    prescription.repeats = repeats;
+    prescription.notes = notes;
+
+    // ✅ Process `items` (Update or Create new)
+    const updatedItems = await Promise.all(
+      items.map(async (item) => {
+        let existingItem = await Item.findOne({
+          prescriptionId: id,
+          medications: item.medications,
+          specificInstructions: item.specificInstructions,
+        });
+
+        if (!existingItem) {
+          // ✅ Create new Item if it doesn't exist
+          existingItem = await Item.create({
+            prescriptionId: id,
+            medications: item.medications,
+            specificInstructions: item.specificInstructions,
+          });
+        }
+
+        // ✅ Process Dosages for this Item
+        const updatedDosages = await Promise.all(
+          item.dosages.map(async (dosage) => {
+            let existingDosage = await Dosage.findOne({
+              itemId: existingItem._id,
+              medicationId: dosage.medicationId,
+              amount: dosage.amount,
+              frequency: dosage.frequency,
+              duration: dosage.duration,
+              notes: dosage.notes,
+            });
+
+            if (!existingDosage) {
+              // ✅ Create new Dosage if it doesn't exist
+              existingDosage = await Dosage.create({
+                itemId: existingItem._id,
+                medicationId: dosage.medicationId,
+                amount: dosage.amount,
+                frequency: dosage.frequency,
+                duration: dosage.duration,
+                notes: dosage.notes,
+              });
+            }
+            return existingDosage._id; // Return Dosage ID
+          })
+        );
+
+        existingItem.dosages = updatedDosages;
+        await existingItem.save();
+
+        return existingItem._id; // Return Item ID
+      })
+    );
+
+    // ✅ Update prescription with the new `items` references
+    prescription.items = updatedItems;
+    await prescription.save();
+
+    res.status(200).json({
+      message: 'Prescription updated successfully',
+      data: prescription,
+    });
   } catch (error) {
     console.error('Error updating prescription:', error);
     res.status(500).json({ message: 'Failed to update prescription' });

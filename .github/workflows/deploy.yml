@@ -27,7 +27,7 @@ jobs:
       - name: 📦 Install modules
         run: npm ci
 
-      # Fix: Append all secrets to .env file properly
+      # Append all secrets to .env file properly
       - name: '📝 Set Environment Variables'
         run: |
           cat <<EOF > .env

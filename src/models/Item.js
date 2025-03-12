@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { encryptData, decryptData } from '../utils/encryption.js';
 
 const ItemSchema = new mongoose.Schema({
   prescriptionId: {
@@ -12,16 +13,21 @@ const ItemSchema = new mongoose.Schema({
       ref: 'Medication',
     },
   ],
+  specificInstructions: {
+    type: String,
+    required: true,
+    set: encryptData,
+    get: decryptData,
+  },
   dosages: [
     {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Dosage',
     },
   ],
-  specificInstructions: {
-    type: String,
-    required: true,
-  },
 });
+
+ItemSchema.set('toJSON', { getters: true });
+ItemSchema.set('toObject', { getters: true });
 
 export const Item = mongoose.model('Item', ItemSchema);

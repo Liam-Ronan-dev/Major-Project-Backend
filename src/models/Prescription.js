@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-// import { encryptData, decryptData } from '../utils/encryption.js';
+import { encryptData, decryptData } from '../utils/encryption.js';
 
 const PrescriptionSchema = new mongoose.Schema({
   prescriptionId: {
@@ -30,6 +30,8 @@ const PrescriptionSchema = new mongoose.Schema({
   pharmacyName: {
     type: String,
     required: true,
+    set: encryptData,
+    get: decryptData,
   },
   repeats: {
     type: Number,
@@ -38,6 +40,8 @@ const PrescriptionSchema = new mongoose.Schema({
   generalInstructions: {
     type: String,
     required: true,
+    set: encryptData,
+    get: decryptData,
   },
   status: {
     type: String,
@@ -46,6 +50,8 @@ const PrescriptionSchema = new mongoose.Schema({
   },
   notes: {
     type: String,
+    set: encryptData,
+    get: decryptData,
   },
   createdAt: {
     type: Date,
@@ -57,11 +63,16 @@ const PrescriptionSchema = new mongoose.Schema({
   },
 });
 
+// ✅ Auto-generate `prescriptionId` if missing
 PrescriptionSchema.pre('save', function (next) {
   if (!this.prescriptionId) {
-    this.prescriptionId = new mongoose.Types.ObjectId().toHexString(); // Unique String ID
+    this.prescriptionId = new mongoose.Types.ObjectId().toHexString();
   }
   next();
 });
+
+// ✅ Enable automatic decryption when retrieving data
+PrescriptionSchema.set('toJSON', { getters: true });
+PrescriptionSchema.set('toObject', { getters: true });
 
 export const Prescription = mongoose.model('Prescription', PrescriptionSchema);

@@ -244,3 +244,56 @@ export const logoutUser = async (req, res) => {
     res.status(500).json({ message: 'Logout failed', error: error.message });
   }
 };
+
+// Get all Pharmacists
+export const getAllPharmacists = async (req, res) => {
+  try {
+    // Ensure only doctors can access
+    if (req.user.role !== 'doctor') {
+      return res.status(403).json({ message: 'Unauthorized access' });
+    }
+
+    // Fetch all pharmacists
+    const pharmacists = await User.find({ role: 'pharmacist' }).select('email firstName lastName');
+
+    if (!pharmacists.length) {
+      return res.status(404).json({ message: 'No pharmacists found' });
+    }
+
+    res.status(200).json({
+      count: pharmacists.length,
+      data: pharmacists,
+    });
+  } catch (error) {
+    console.error('Error fetching pharmacists:', error);
+    res.status(500).json({ message: 'Failed to fetch pharmacists' });
+  }
+};
+
+// Get a single pharmacist by ID
+export const getPharmacistById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Ensure only doctors can access this
+    if (req.user.role !== 'doctor') {
+      return res.status(403).json({ message: 'Unauthorized access' });
+    }
+
+    // Find the pharmacist by ID
+    const pharmacist = await User.findOne({ _id: id, role: 'pharmacist' }).select(
+      'email firstName lastName'
+    );
+
+    if (!pharmacist) {
+      return res.status(404).json({ message: 'Pharmacist not found' });
+    }
+
+    res.status(200).json({
+      data: pharmacist,
+    });
+  } catch (error) {
+    console.error('Error fetching pharmacist:', error);
+    res.status(500).json({ message: 'Failed to fetch pharmacist' });
+  }
+};
