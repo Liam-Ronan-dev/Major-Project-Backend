@@ -1,5 +1,4 @@
 import { body } from 'express-validator';
-import { handleInputErrors } from '../middleware/errors.js'; // ✅ Import existing error handler
 
 export const checkPassword = [
   body('password')
@@ -28,8 +27,6 @@ export const validateRegisterUser = [
   body('role')
     .isIn(['doctor', 'pharmacist'])
     .withMessage('Invalid role. Choose "doctor" or "pharmacist"'),
-
-  handleInputErrors, // Use existing error handler instead of repeating logic
 ];
 
 export const validateLoginUser = [

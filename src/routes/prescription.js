@@ -8,12 +8,28 @@ import {
   getAllPrescriptions,
   getPrescriptionById,
   updatePrescription,
+  updatePrescriptionStatus,
 } from '../controllers/prescription.js';
+import {
+  validateCreatePrescription,
+  validateDeletePrescription,
+  validateGetPrescriptionById,
+  validatePatchPrescription,
+  validateUpdatePrescription,
+} from '../validators/validatePrescription.js';
+import { handleInputErrors } from '../middleware/errors.js';
 
 const router = express.Router();
 
 // Doctors can only create prescriptions
-router.post('/prescriptions', ensureAuthenticated, authorizeRoles('doctor'), createPrescription);
+router.post(
+  '/prescriptions',
+  ensureAuthenticated,
+  authorizeRoles('doctor'),
+  validateCreatePrescription,
+  handleInputErrors,
+  createPrescription
+);
 
 // Doctors can only update their own prescriptions
 router.put(
@@ -21,6 +37,8 @@ router.put(
   ensureAuthenticated,
   authorizeRoles('doctor'),
   verifyOwnership('Prescription'),
+  validateUpdatePrescription,
+  handleInputErrors,
   updatePrescription
 );
 
@@ -30,6 +48,8 @@ router.delete(
   ensureAuthenticated,
   authorizeRoles('doctor'),
   verifyOwnership('Prescription'),
+  validateDeletePrescription,
+  handleInputErrors,
   deletePrescription
 );
 
@@ -47,7 +67,18 @@ router.get(
   ensureAuthenticated,
   authorizeRoles('doctor', 'pharmacist'),
   verifyOwnership('Prescription'),
+  validateGetPrescriptionById,
+  handleInputErrors,
   getPrescriptionById
+);
+
+router.patch(
+  '/prescription/:id/status',
+  ensureAuthenticated,
+  authorizeRoles('pharmacist'),
+  validatePatchPrescription,
+  handleInputErrors,
+  updatePrescriptionStatus
 );
 
 export default router;

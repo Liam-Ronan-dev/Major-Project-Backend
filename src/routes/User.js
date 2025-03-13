@@ -9,7 +9,7 @@ import {
   refreshAccessToken,
   registerUser,
 } from '../controllers/User.js';
-import { validateLoginUser, validateRegisterUser } from '../Validators/validateUser.js';
+import { validateLoginUser, validateRegisterUser } from '../validators/validateUser.js';
 import { handleInputErrors } from '../middleware/errors.js';
 import { ensureAuthenticated } from '../modules/auth.js';
 import { authorizeRoles } from '../middleware/auth.js';

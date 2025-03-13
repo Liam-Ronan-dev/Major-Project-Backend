@@ -293,3 +293,49 @@ export const getPrescriptionById = async (req, res) => {
     res.status(500).json({ message: 'Failed to fetch prescription' });
   }
 };
+
+// Update status & notes of Prescription - pharmacists
+export const updatePrescriptionStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { notes, status } = req.body;
+
+    if (req.user.role !== 'pharmacist') {
+      return res.status(403).json({ message: 'Unauthorized: Only pharmacists can update status' });
+    }
+
+    // Validate status update
+    const allowedStatuses = ['Pending', 'Processed', 'Completed', 'Cancelled'];
+    if (status && !allowedStatuses.includes(status)) {
+      return res.status(400).json({ message: 'Invalid status update' });
+    }
+
+    // Find the prescription & ensure the pharmacist is assigned
+    const prescription = await Prescription.findOne({
+      _id: id,
+      pharmacistId: req.user.id,
+    });
+
+    if (!prescription) {
+      return res.status(404).json({ message: 'Prescription not found or unauthorized' });
+    }
+
+    // Update only `notes` and `status`
+    if (notes) prescription.notes = notes;
+    if (status) prescription.status = status;
+
+    await prescription.save();
+
+    res.status(200).json({
+      message: 'Prescription updated successfully',
+      data: {
+        id: prescription._id,
+        status: prescription.status,
+        notes: prescription.notes,
+      },
+    });
+  } catch (error) {
+    console.error('Error updating prescription status:', error);
+    res.status(500).json({ message: 'Failed to update prescription status' });
+  }
+};

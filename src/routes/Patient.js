@@ -9,6 +9,13 @@ import {
   getPatientById,
   updatePatient,
 } from '../controllers/Patient.js';
+import {
+  validateCreatePatient,
+  validateDeletePatient,
+  validateGetPatientById,
+  validateUpdatePatient,
+} from '../validators/validatePatient.js';
+import { handleInputErrors } from '../middleware/errors.js';
 
 const router = express.Router();
 
@@ -26,6 +33,8 @@ router.get(
   ensureAuthenticated,
   authorizeRoles('doctor', 'pharmacist'),
   verifyOwnership('Patient'),
+  validateGetPatientById,
+  handleInputErrors,
   getPatientById
 );
 
@@ -34,6 +43,8 @@ router.post(
   '/patients',
   ensureAuthenticated,
   authorizeRoles('doctor'),
+  validateCreatePatient,
+  handleInputErrors,
   createPatient
 );
 
@@ -43,6 +54,8 @@ router.put(
   ensureAuthenticated,
   authorizeRoles('doctor'),
   verifyOwnership('Patient'),
+  validateUpdatePatient,
+  handleInputErrors,
   updatePatient
 );
 
@@ -52,6 +65,8 @@ router.delete(
   ensureAuthenticated,
   authorizeRoles('doctor'),
   verifyOwnership('Patient'),
+  validateDeletePatient,
+  handleInputErrors,
   deletePatient
 );
 
