@@ -16,7 +16,7 @@ import {
   validateGetPrescriptionById,
   validatePatchPrescription,
   validateUpdatePrescription,
-} from '../validators/validatePrescription.js';
+} from '../utils/validators/validatePrescription.js';
 import { handleInputErrors } from '../middleware/errors.js';
 
 const router = express.Router();

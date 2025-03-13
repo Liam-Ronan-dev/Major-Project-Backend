@@ -14,7 +14,7 @@ import {
   validateDeletePatient,
   validateGetPatientById,
   validateUpdatePatient,
-} from '../validators/validatePatient.js';
+} from '../utils/validators/validatePatient.js';
 import { handleInputErrors } from '../middleware/errors.js';
 
 const router = express.Router();
