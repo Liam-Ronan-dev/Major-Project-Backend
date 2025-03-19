@@ -162,9 +162,9 @@ export const mfaLogin = async (req, res) => {
     // await user.save();
 
     res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: true, // send over https
-      sameSite: 'Strict',
+      httpOnly: true, // Prevents JavaScript access
+      secure: true, // Ensures it's sent over HTTPS
+      sameSite: 'None', // Allows cross-site requests
     });
 
     return res.status(200).json({
@@ -233,10 +233,10 @@ export const logoutUser = async (req, res) => {
     await RefreshToken.findOneAndDelete({ token: refreshToken });
 
     // Clear refresh token cookie
-    res.clearCookie('refreshToken', {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'Strict',
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true, // Prevents JavaScript access
+      secure: true, // Ensures it's sent over HTTPS
+      sameSite: 'None', // Allows cross-site requests
     });
 
     res.json({ message: 'Logged out successfully' });
