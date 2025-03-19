@@ -27,15 +27,9 @@ export const registerUser = async (req, res, next) => {
     }
 
     // Check for duplicate license number before hashing
-    /**
-     * TODO: Check this again - may be inefficient this way!!
-     */
-    const users = await User.find();
-    for (const user of users) {
-      const isMatch = await compareField(licenseNumber, user.licenseNumber);
-      if (isMatch) {
-        return res.status(409).json({ message: 'License number already exists' });
-      }
+    const existingUser = await User.findOne().lean();
+    if (existingUser && (await compareField(licenseNumber, existingUser.licenseNumber))) {
+      return res.status(409).json({ message: 'License number already exists' });
     }
 
     // Hash password & license number
@@ -84,14 +78,10 @@ export const loginUser = async (req, res, next) => {
   const { email, password } = req.body;
 
   try {
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(401).json({ message: 'Invalid credentials' });
-    }
-
-    const isMatch = await compareField(password, user.password);
-    if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+    // Avoids timing attacks by checking both conditions together.
+    const user = await User.findOne({ email }).select('+password'); // Explicitly include password
+    if (!user || !(await compareField(password, user.password))) {
+      return res.status(401).json({ message: 'Invalid email or password' });
     }
 
     if (!user.mfaSecret) {
@@ -103,7 +93,8 @@ export const loginUser = async (req, res, next) => {
     // MFA is mandatory for all users
     const tempToken = crypto.randomUUID();
     const cacheKey = `temp_token:${tempToken}`;
-    const expiresInSeconds = process.env.TEMP_TOKEN_EXPIRES_IN;
+    // Prevent crash is env is undefined
+    const expiresInSeconds = process.env.TEMP_TOKEN_EXPIRES_IN || 300;
 
     cache.set(cacheKey, user._id, expiresInSeconds);
 
