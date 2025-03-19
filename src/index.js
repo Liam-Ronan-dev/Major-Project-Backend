@@ -1,9 +1,13 @@
+// CORS
 import cors from 'cors';
-import * as dotenv from 'dotenv';
+import { corsOptions } from './config/corsOptions.js';
+
+// Logger for requests - url, origin, user-agent, method
+import { logger } from './middleware/logger.js';
+
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
-import morgan from 'morgan';
 
 import { connectDB } from './config/db.js';
 
@@ -14,27 +18,18 @@ import prescriptionRoutes from './routes/prescription.js';
 import appointmentRoutes from './routes/Appointment.js';
 import medicationRoutes from './routes/Medication.js';
 
-import { errorHandler } from './middleware/errors.js';
+import { errorHandlerLogger } from './middleware/errors.js';
 
 const app = express();
 
-// Use env file contents
-dotenv.config();
+// Use a logger to display request status code, origin, time/date etc
+app.use(logger);
 
 // Allowing the Front-end to make requests to the Backend API
-app.use(
-  cors({
-    origin: 'http://localhost:5173',
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    credentials: true,
-  })
-);
+app.use(cors(corsOptions));
 
 // Apply Helmet to Secure HTTP Headers
 app.use(helmet());
-
-// Use a logger to display request status code
-app.use(morgan('dev'));
 
 app.use(express.json()); // Parse JSON Requests
 app.use(cookieParser()); // Parse cookies
@@ -50,7 +45,7 @@ app.use('/api', appointmentRoutes);
 app.use('/api', patientRoutes);
 app.use('/api', medicationRoutes);
 
-app.use(errorHandler);
+app.use(errorHandlerLogger);
 connectDB();
 
 export default app;
