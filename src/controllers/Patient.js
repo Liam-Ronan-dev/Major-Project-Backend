@@ -149,7 +149,7 @@ export const getAllPatients = async (req, res) => {
     }
 
     if (!patients.length) {
-      return res.status(404).json({ message: 'No patients found' });
+      return res.status(400).json({ message: 'No patients found' });
     }
 
     res.status(200).json({
