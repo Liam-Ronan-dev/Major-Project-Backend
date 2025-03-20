@@ -1,20 +1,10 @@
 import { User } from '../models/User.js';
-import { RefreshToken } from '../models/RefreshToken.js';
-import {
-  createJWT,
-  hashField,
-  compareField,
-  createRefreshToken,
-  verifyToken,
-} from '../modules/auth.js';
-import crypto from 'crypto';
-import NodeCache from 'node-cache';
+import { createJWT, hashField, compareField } from '../modules/auth.js';
 import { authenticator } from 'otplib';
 import qrcode from 'qrcode';
 import * as dotenv from 'dotenv';
 
 dotenv.config();
-const cache = new NodeCache();
 
 // Register A User
 export const registerUser = async (req, res, next) => {
@@ -56,14 +46,9 @@ export const registerUser = async (req, res, next) => {
     await user.save();
 
     return res.status(201).json({
-      message: 'User registered successfully. Verification complete.',
+      message: 'MFA setup required. Scan the QR code and enter the first OTP.',
       qrCode,
-      user: {
-        id: user._id,
-        email: user.email,
-        role: user.role,
-        isVerified: user.isVerified,
-      },
+      email: user.email,
     });
   } catch (error) {
     console.error(error);
@@ -78,33 +63,23 @@ export const loginUser = async (req, res, next) => {
   const { email, password } = req.body;
 
   try {
-    // Avoids timing attacks by checking both conditions together.
-    const user = await User.findOne({ email }).select('+password'); // Explicitly include password
+    const user = await User.findOne({ email }).select('+password');
     if (!user || !(await compareField(password, user.password))) {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
-    if (!user.mfaSecret) {
-      return res.status(403).json({
-        message: 'MFA setup is incomplete. Please scan the QR code and verify your MFA first.',
-      });
-    }
-
-    // MFA is mandatory for all users
-    const tempToken = crypto.randomUUID();
-    const cacheKey = `temp_token:${tempToken}`;
-    // Prevent crash is env is undefined
-    const expiresInSeconds = process.env.TEMP_TOKEN_EXPIRES_IN || 300;
-
-    cache.set(cacheKey, user._id, expiresInSeconds);
+    // Store user ID in a temporary session cookie
+    res.cookie('mfa_session', user._id.toString(), {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'None',
+      maxAge: 5 * 60 * 1000, // Expires in 5 minutes
+    });
 
     return res.status(200).json({
       message: 'MFA Required. Enter your TOTP code',
-      tempToken,
-      expiresInSeconds,
     });
   } catch (error) {
-    console.error(error);
     res.status(500).json({ message: 'Login Failed', error: error.message });
     next(error);
   }
@@ -113,55 +88,38 @@ export const loginUser = async (req, res, next) => {
 // MFA Login Function
 export const mfaLogin = async (req, res) => {
   try {
-    const { tempToken, totp } = req.body;
-
-    if (!tempToken || !totp) {
-      return res.status(422).json({ message: 'Please fill in all fields (tempToken & TOTP)' });
-    }
-
-    const cacheKey = `temp_token:${tempToken}`;
-    const userId = cache.get(cacheKey);
+    const { totp } = req.body;
+    const userId = req.cookies.mfa_session;
 
     if (!userId) {
-      return res.status(401).json({
-        message: 'The provided temporary token is incorrect or expired',
-      });
+      return res.status(401).json({ message: 'Session expired. Please log in again.' });
     }
 
-    const user = await User.findById(userId);
+    const user = await User.findById(userId).select('+mfaSecret');
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    const verified = authenticator.verify({
-      token: totp,
-      secret: user.mfaSecret,
-    });
+    const verified = authenticator.verify({ token: totp, secret: user.mfaSecret });
 
     if (!verified) {
-      return res.status(401).json({ message: 'The provided TOTP is incorrect or expired' });
+      return res.status(401).json({ message: 'Invalid or expired TOTP' });
     }
 
-    // Delete tempToken after use
-    cache.del(cacheKey);
-
+    // Create JWT & Store in Cookie
     const accessToken = createJWT(user);
-    const refreshToken = createRefreshToken(user);
 
-    //Store refresh token in database
-    await RefreshToken.create({ userId: user._id, token: refreshToken });
-    // await user.save();
-
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true, // Prevents JavaScript access
-      secure: true, // Ensures it's sent over HTTPS
-      sameSite: 'None', // Allows cross-site requests
+    res.cookie('accessToken', accessToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'None',
     });
+
+    // Clear MFA session
+    res.clearCookie('mfa_session', { httpOnly: true, secure: true, sameSite: 'None' });
 
     return res.status(200).json({
       message: 'Login successful',
-      accessToken,
-      refreshToken,
       user: {
         id: user._id,
         email: user.email,
@@ -169,71 +127,19 @@ export const mfaLogin = async (req, res) => {
       },
     });
   } catch (error) {
-    return res.status(500).json({ message: error.message });
-  }
-};
-
-// Refresh access token
-export const refreshAccessToken = async (req, res) => {
-  const { refreshToken } = req.cookies;
-
-  if (!refreshToken) return res.status(401).json({ message: 'No refresh token provided' });
-
-  try {
-    const decoded = verifyToken(refreshToken, process.env.JWT_REFRESH_TOKEN_SECRET);
-
-    if (!decoded || !decoded.id) {
-      return res.status(403).json({ message: 'Invalid refresh token' });
-    }
-
-    // Check if refresh token exists
-    const storedToken = await RefreshToken.findOne({
-      token: refreshToken,
-      userId: decoded.id,
-    });
-
-    if (!storedToken) {
-      return res.status(403).json({ message: 'Unauthorized refresh token.' });
-    }
-
-    // Retrieve the full user from DB
-    const user = await User.findById(decoded.id);
-    if (!user) {
-      return res.status(403).json({ message: 'User not found.' });
-    }
-
-    // Generate a new access token
-    const newAccessToken = createJWT(user);
-
-    res.json({ accessToken: newAccessToken });
-  } catch (error) {
-    res.status(500).json({ message: 'Error refreshing token.', error: error.message });
+    return res.status(500).json({ message: 'Error verifying OTP', error: error.message });
   }
 };
 
 // Logout User Function
 export const logoutUser = async (req, res) => {
-  const { refreshToken } = req.cookies;
+  res.clearCookie('accessToken', {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'None',
+  });
 
-  if (!refreshToken) {
-    return res.status(400).json({ message: 'No refresh token found ' });
-  }
-
-  try {
-    // Delete the refresh token from the database
-    await RefreshToken.findOneAndDelete({ token: refreshToken });
-
-    // Clear refresh token cookie
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true, // Prevents JavaScript access
-      secure: true, // Ensures it's sent over HTTPS
-      sameSite: 'None', // Allows cross-site requests
-    });
-
-    res.json({ message: 'Logged out successfully' });
-  } catch (error) {
-    res.status(500).json({ message: 'Logout failed', error: error.message });
-  }
+  res.json({ message: 'Logged out successfully' });
 };
 
 // Get all Pharmacists

@@ -6,9 +6,9 @@ import {
   loginUser,
   logoutUser,
   mfaLogin,
-  refreshAccessToken,
   registerUser,
 } from '../controllers/User.js';
+
 // Testing again
 import { validateLoginUser, validateRegisterUser } from '../utils/validators/validateUser.js';
 import { handleInputErrors } from '../middleware/errors.js';
@@ -25,9 +25,6 @@ router.post('/auth/login', validateLoginUser, handleInputErrors, loginUser);
 
 // MFA Login
 router.post('/auth/login/mfa', mfaLogin);
-
-// Refresh Token Route
-router.post('/auth/refresh', refreshAccessToken);
 
 // Logout Route
 router.post('/auth/logout', logoutUser);

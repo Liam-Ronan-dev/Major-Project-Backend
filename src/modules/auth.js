@@ -27,18 +27,9 @@ export const createJWT = (user) => {
   return token;
 };
 
-// Create a Refresh token - Saves the user logging in again after the expiry of the JWT token above
-export const createRefreshToken = (user) => {
-  const refreshToken = jwt.sign({ id: user._id }, process.env.JWT_REFRESH_TOKEN_SECRET, {
-    subject: 'refreshToken',
-    expiresIn: process.env.JWT_REFRESH_TOKEN_SECRET_EXPIRES_IN,
-  });
-  return refreshToken;
-};
-
-export const verifyToken = (token, secret) => {
+export const verifyToken = (token) => {
   try {
-    return jwt.verify(token, secret);
+    return jwt.verify(token, process.env.JWT_SECRET);
   } catch (err) {
     console.log(err);
     return null; // if token is expired/invalid
@@ -47,16 +38,13 @@ export const verifyToken = (token, secret) => {
 
 // Protect Middleware
 export const ensureAuthenticated = (req, res, next) => {
-  const bearer = req.headers.authorization;
+  const token = req.cookies.accessToken;
 
-  // Check if Authorization header exists and is properly formatted
-  if (!bearer || !bearer.startsWith('Bearer ')) {
-    return res.status(401).json({ message: 'Not authorized. Missing or invalid token' });
+  if (!token) {
+    return res.status(401).json({ message: 'Not authorized. Missing token' });
   }
 
-  // Extract only token part
-  const token = bearer.split(' ')[1];
-  const decodedToken = verifyToken(token, process.env.JWT_SECRET);
+  const decodedToken = verifyToken(token);
 
   if (!decodedToken) {
     return res.status(401).json({ message: 'Invalid or expired token' });
