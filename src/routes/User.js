@@ -7,6 +7,7 @@ import {
   logoutUser,
   mfaLogin,
   registerUser,
+  getUser,
 } from '../controllers/User.js';
 
 // Testing again
@@ -34,5 +35,8 @@ router.get('/pharmacists', ensureAuthenticated, authorizeRoles('doctor'), getAll
 
 // Get single pharmacist by ID
 router.get('/pharmacist/:id', ensureAuthenticated, authorizeRoles('doctor'), getPharmacistById);
+
+// Get Authenticated User
+router.get('/auth/me', ensureAuthenticated, getUser);
 
 export default router;
