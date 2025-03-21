@@ -30,6 +30,7 @@ export const errorHandlerLogger = (err, req, res) => {
   );
 
   console.log(err.stack);
+  console.log(err.message);
 
   res.status(status);
 
