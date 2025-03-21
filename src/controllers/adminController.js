@@ -14,7 +14,7 @@ export const verifyUser = async (req, res) => {
     });
 
     if (!user) {
-      return res.status(400).json({ message: 'Invalid or expired verification token.' });
+      return res.status(400).send('<h2>Verification link is invalid or expired.</h2>');
     }
 
     // Mark the user as verified
@@ -23,7 +23,9 @@ export const verifyUser = async (req, res) => {
     user.verificationTokenExpires = null;
     await user.save();
 
-    res.status(200).json({ message: 'User successfully verified! They can now log in.' });
+    return res.send(
+      `<h1>Thank you!</h1><p>User successfully verified. They can now set up MFA.</p>`
+    );
   } catch (error) {
     res.status(500).json({ message: 'Verification failed', error: error.message });
   }

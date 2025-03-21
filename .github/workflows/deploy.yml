@@ -40,6 +40,9 @@ jobs:
           MONGO_URI=${{ secrets.MONGO_URI }}
           PORT=${{ secrets.PORT }}
           TEMP_TOKEN_EXPIRES_IN=${{ secrets.TEMP_TOKEN_EXPIRES_IN }}
+          ADMIN_EMAIL=${{ secrets.ADMIN_EMAIL }}
+          ADMIN_EMAIL_PASSWORD=${{ secrets.ADMIN_EMAIL_PASSWORD }}
+          BACKEND_URL=${{ secrets.BACKEND_URL }}
           EOF
 
       # Restart PM2 and update env variables
