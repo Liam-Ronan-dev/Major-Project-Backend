@@ -29,6 +29,12 @@ const UserSchema = new mongoose.Schema({
     type: Boolean,
     default: false, // will be set to true after admin verification
   },
+  verificationToken: {
+    type: String, // Stores the one-time token sent to the admin
+  },
+  verificationTokenExpires: {
+    type: Date,
+  },
   mfaEnabled: {
     type: Boolean,
     default: true,

@@ -2,9 +2,7 @@ import { User } from '../models/User.js';
 import { createJWT, hashField, compareField } from '../modules/auth.js';
 import { authenticator } from 'otplib';
 import qrcode from 'qrcode';
-import * as dotenv from 'dotenv';
-
-dotenv.config();
+import { sendEmail, verificationToken, verificationTokenExpires } from '../config/email.js';
 
 // Register A User
 export const registerUser = async (req, res, next) => {
@@ -16,10 +14,13 @@ export const registerUser = async (req, res, next) => {
       return res.status(409).json({ message: 'Email already exists' });
     }
 
-    // Check for duplicate license number before hashing
-    const existingUser = await User.findOne().lean();
-    if (existingUser && (await compareField(licenseNumber, existingUser.licenseNumber))) {
-      return res.status(409).json({ message: 'License number already exists' });
+    // Correct way to check for duplicate license number
+    const users = await User.find();
+    for (const user of users) {
+      const isMatch = await compareField(licenseNumber, user.licenseNumber);
+      if (isMatch) {
+        return res.status(409).json({ message: 'License number already exists' });
+      }
     }
 
     // Hash password & license number
@@ -37,7 +38,9 @@ export const registerUser = async (req, res, next) => {
       password: hashedPassword,
       licenseNumber: hashedLicenseNumber,
       role: role.toLowerCase(),
-      isVerified: true, // Set before saving (No second save required)
+      isVerified: false,
+      verificationToken,
+      verificationTokenExpires, // Set before saving
       mfaEnabled: true,
       mfaSecret, // Store the MFA secret
     });
@@ -45,8 +48,12 @@ export const registerUser = async (req, res, next) => {
     // Save user to database (Only once!)
     await user.save();
 
+    // Send email to admin
+    sendEmail(email, role, user._id);
+
     return res.status(201).json({
-      message: 'MFA setup required. Scan the QR code and enter the first OTP.',
+      message:
+        'User registered. Awaiting admin approval - MFA setup required. Scan the QR code and enter the first OTP.',
       qrCode,
       email: user.email,
     });
@@ -66,6 +73,13 @@ export const loginUser = async (req, res, next) => {
     const user = await User.findOne({ email }).select('+password');
     if (!user || !(await compareField(password, user.password))) {
       return res.status(401).json({ message: 'Invalid email or password' });
+    }
+
+    if (!user.isVerified) {
+      return res.status(403).json({
+        message:
+          'Admin has not verified your account yet. Please wait until the verification process is completed.',
+      });
     }
 
     // Store user ID in a temporary session cookie

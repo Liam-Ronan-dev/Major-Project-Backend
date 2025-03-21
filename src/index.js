@@ -17,6 +17,7 @@ import patientRoutes from './routes/Patient.js';
 import prescriptionRoutes from './routes/prescription.js';
 import appointmentRoutes from './routes/Appointment.js';
 import medicationRoutes from './routes/Medication.js';
+import adminRoutes from './routes/Admin.js';
 
 import { errorHandlerLogger } from './middleware/errors.js';
 
@@ -40,6 +41,7 @@ app.get('/api/health', (req, res) => {
 });
 
 app.use('/api', userRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/api', prescriptionRoutes);
 app.use('/api', appointmentRoutes);
 app.use('/api', patientRoutes);
