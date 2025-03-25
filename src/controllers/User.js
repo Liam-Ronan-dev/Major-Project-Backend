@@ -2,7 +2,8 @@ import { User } from '../models/User.js';
 import { createJWT, hashField, compareField } from '../modules/auth.js';
 import { authenticator } from 'otplib';
 import qrcode from 'qrcode';
-import { sendEmail, verificationToken, verificationTokenExpires } from '../config/email.js';
+import crypto from 'crypto';
+import { sendEmail } from '../config/email.js';
 
 // Register A User
 export const registerUser = async (req, res, next) => {
@@ -32,6 +33,9 @@ export const registerUser = async (req, res, next) => {
     const mfaURI = authenticator.keyuri(email, 'Health-service.click', mfaSecret);
     const qrCode = await qrcode.toDataURL(mfaURI);
 
+    const token = crypto.randomBytes(32).toString('hex');
+    const expires = Date.now() + 24 * 60 * 60 * 1000;
+
     // Create new user (Set `isVerified = true` before saving)
     const user = new User({
       email,
@@ -39,8 +43,8 @@ export const registerUser = async (req, res, next) => {
       licenseNumber: hashedLicenseNumber,
       role: role.toLowerCase(),
       isVerified: false,
-      verificationToken,
-      verificationTokenExpires, // Set before saving
+      verificationToken: token,
+      verificationTokenExpires: expires, // Set before saving
       mfaEnabled: true,
       mfaSecret, // Store the MFA secret
     });
@@ -49,7 +53,7 @@ export const registerUser = async (req, res, next) => {
     await user.save();
 
     // Send email to admin
-    sendEmail(email, role, user._id);
+    sendEmail(email, role, user._id, token);
 
     return res.status(201).json({
       message:

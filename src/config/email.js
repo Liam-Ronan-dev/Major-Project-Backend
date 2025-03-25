@@ -1,11 +1,8 @@
-import nodemailer from 'nodemailer';
 import * as dotenv from 'dotenv';
-import crypto from 'crypto';
 
 dotenv.config();
-
-export const verificationToken = crypto.randomBytes(32).toString('hex');
-export const verificationTokenExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+console.log('📨 Email service loaded with BACKEND_URL:', process.env.BACKEND_URL);
+import nodemailer from 'nodemailer';
 
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
@@ -17,8 +14,9 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-export const sendEmail = async (email, role, userId) => {
-  const verificationLink = `${process.env.BACKEND_URL}/api/admin/verify/${userId}/${verificationToken}`;
+export const sendEmail = async (email, role, userId, token) => {
+  console.log(process.env.BACKEND_URL);
+  const verificationLink = `${process.env.BACKEND_URL}/api/admin/verify/${userId}/${token}`;
   console.log('Generated Verification Link:', verificationLink);
 
   await transporter.sendMail({

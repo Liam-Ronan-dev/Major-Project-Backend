@@ -23,16 +23,14 @@ export const handleInputErrors = (req, res, next) => {
 // Error handler for the logger
 export const errorHandlerLogger = (err, req, res) => {
   const errMessage = err.message;
-  const status = res.statusCode ? res.statusCode : 500;
+  // const status = res.statusCode ? res.statusCode : 500;
 
-  logEvents(
-    `${err.name}: ${errMessage}\t${req.method}\t${req.url}\t${req.headers.origin}, 'errLog.log`
-  );
+  logEvents(`${err.name}: ${errMessage}\t${req.method}\t${req.url}, 'errLog.log`);
 
   console.log(err.stack);
   console.log(err.message);
 
-  res.status(status);
+  // res.statusCode(status);
 
   res.json({ message: errMessage });
 };
