@@ -1,7 +1,6 @@
 import * as dotenv from 'dotenv';
 
 dotenv.config();
-console.log('📨 Email service loaded with BACKEND_URL:', process.env.BACKEND_URL);
 import nodemailer from 'nodemailer';
 
 const transporter = nodemailer.createTransport({
