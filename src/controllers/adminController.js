@@ -23,9 +23,7 @@ export const verifyUser = async (req, res) => {
     user.verificationTokenExpires = null;
     await user.save();
 
-    return res.send(
-      `<h1>Thank you!</h1><p>User successfully verified. They can now set up MFA.</p>`
-    );
+    return res.redirect('https://health-service.click/verified');
   } catch (error) {
     res.status(500).json({ message: 'Verification failed', error: error.message });
   }

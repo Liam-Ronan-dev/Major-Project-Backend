@@ -17,7 +17,7 @@ export const authorizeRoles = (...roles) => {
 
 // Ownership middleware - To verify that the logged in user can only access their own created resources
 /**
- * !
+ *
  */
 export const verifyOwnership = (modelType) => {
   return async (req, res, next) => {
@@ -56,7 +56,7 @@ export const verifyOwnership = (modelType) => {
         }
       }
 
-      // ✅ Pharmacist Ownership Check (Medications & Orders)
+      // Pharmacist Ownership Check (Medications & Orders)
       if (req.user.role === 'pharmacist') {
         if (
           ['Medication', 'Order'].includes(modelType) &&
@@ -68,7 +68,7 @@ export const verifyOwnership = (modelType) => {
         }
       }
 
-      next(); // ✅ Proceed to the controller
+      next(); // Proceed to the controller
     } catch (error) {
       console.error(`Ownership verification error:`, error);
       res.status(500).json({ message: 'Failed to verify ownership' });
