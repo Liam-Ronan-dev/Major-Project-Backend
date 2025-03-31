@@ -109,6 +109,7 @@ export const getAllPatients = async (req, res) => {
         .populate({
           path: 'prescriptions',
           model: 'Prescription',
+          match: { pharmacistId: req.user.id },
           populate: [
             {
               path: 'items',
@@ -144,6 +145,8 @@ export const getAllPatients = async (req, res) => {
           model: 'User',
           select: 'email',
         });
+
+      patients = patients.filter((p) => p.prescriptions && p.prescriptions.length > 0);
     } else {
       return res.status(403).json({ message: 'Unauthorized' });
     }
