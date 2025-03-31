@@ -2,7 +2,6 @@ import { Prescription } from '../models/Prescription.js';
 import { Patient } from '../models/Patient.js';
 import { Appointment } from '../models/Appointment.js';
 import { Medication } from '../models/Medication.js';
-import { Order } from '../models/Order.js';
 
 // Role-based access control middleware
 export const authorizeRoles = (...roles) => {
@@ -28,7 +27,6 @@ export const verifyOwnership = (modelType) => {
       if (modelType === 'Prescription') model = Prescription;
       if (modelType === 'Patient') model = Patient;
       if (modelType === 'Medication') model = Medication;
-      if (modelType === 'Order') model = Order;
       if (modelType === 'Appointment') model = Appointment;
 
       if (!model) {
