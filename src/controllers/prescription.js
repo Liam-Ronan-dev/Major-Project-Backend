@@ -3,6 +3,7 @@ import { Item } from '../models/Item.js';
 import { Dosage } from '../models/Dosage.js';
 import { Patient } from '../models/Patient.js';
 import { Medication } from '../models/Medication.js';
+import { io, connectedUsers } from '../index.js';
 
 // Create Prescription - doctor
 export const createPrescription = async (req, res) => {
@@ -76,6 +77,17 @@ export const createPrescription = async (req, res) => {
     prescription.items = await Promise.all(itemPromises);
     await prescription.save();
 
+    const pharmacistSocketId = connectedUsers.get(pharmacistId);
+
+    if (pharmacistSocketId) {
+      io.to(pharmacistSocketId).emit('new-prescription', {
+        prescriptionId: prescription._id,
+        message: `A new prescription has been assigned to you.`,
+        patient: patient.firstName + ' ' + patient.lastName,
+        createdAt: prescription.createdAt,
+      });
+    }
+
     res.status(201).json({
       message: 'Prescription created successfully',
       data: prescription,
@@ -93,13 +105,13 @@ export const updatePrescription = async (req, res) => {
     const { patientId, pharmacistId, pharmacyName, generalInstructions, repeats, notes, items } =
       req.body;
 
-    // ✅ Ensure prescription exists
+    // Ensure prescription exists
     let prescription = await Prescription.findById(id);
     if (!prescription) {
       return res.status(404).json({ message: 'Prescription not found' });
     }
 
-    // ✅ Update prescription fields
+    // Update prescription fields
     prescription.patientId = patientId;
     prescription.pharmacistId = pharmacistId;
     prescription.pharmacyName = pharmacyName;
@@ -107,7 +119,7 @@ export const updatePrescription = async (req, res) => {
     prescription.repeats = repeats;
     prescription.notes = notes;
 
-    // ✅ Process `items` (Update or Create new)
+    // Process `items` (Update or Create new)
     const updatedItems = await Promise.all(
       items.map(async (item) => {
         let existingItem = await Item.findOne({
@@ -117,7 +129,7 @@ export const updatePrescription = async (req, res) => {
         });
 
         if (!existingItem) {
-          // ✅ Create new Item if it doesn't exist
+          // Create new Item if it doesn't exist
           existingItem = await Item.create({
             prescriptionId: id,
             medications: item.medications,
@@ -125,7 +137,7 @@ export const updatePrescription = async (req, res) => {
           });
         }
 
-        // ✅ Process Dosages for this Item
+        // Process Dosages for this Item
         const updatedDosages = await Promise.all(
           item.dosages.map(async (dosage) => {
             let existingDosage = await Dosage.findOne({
@@ -138,7 +150,6 @@ export const updatePrescription = async (req, res) => {
             });
 
             if (!existingDosage) {
-              // ✅ Create new Dosage if it doesn't exist
               existingDosage = await Dosage.create({
                 itemId: existingItem._id,
                 medicationId: dosage.medicationId,
@@ -159,7 +170,7 @@ export const updatePrescription = async (req, res) => {
       })
     );
 
-    // ✅ Update prescription with the new `items` references
+    // Update prescription with the new `items` references
     prescription.items = updatedItems;
     await prescription.save();
 
@@ -325,6 +336,21 @@ export const updatePrescriptionStatus = async (req, res) => {
     if (status) prescription.status = status;
 
     await prescription.save();
+
+    const doctorSocketId = connectedUsers.get(prescription.doctorId.toString());
+
+    if (doctorSocketId) {
+      const patient = await Patient.findById(prescription.patientId);
+
+      io.to(doctorSocketId).emit('prescription-updated', {
+        prescriptionId: prescription._id,
+        status: prescription.status,
+        notes: prescription.notes,
+        updatedAt: prescription.updatedAt,
+        message: 'Prescription updated by pharmacist.',
+        patient: patient ? `${patient.firstName} ${patient.lastName}` : 'Unknown patient',
+      });
+    }
 
     res.status(200).json({
       message: 'Prescription updated successfully',

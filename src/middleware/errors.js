@@ -11,26 +11,14 @@ export const handleInputErrors = (req, res, next) => {
   next();
 };
 
-// export const errorHandler = (err, req, res, next) => {
-//   console.log(err.stack);
-
-//   return res.status(err.status || 500).json({
-//     message: err.message || 'Internal Server Error',
-//     errors: err.errors || [],
-//   });
-// };
-
 // Error handler for the logger
 export const errorHandlerLogger = (err, req, res) => {
   const errMessage = err.message;
-  // const status = res.statusCode ? res.statusCode : 500;
 
-  logEvents(`${err.name}: ${errMessage}\t${req.method}\t${req.url}, 'errLog.log`);
+  logEvents(`${err.name}: ${errMessage}\t${req.method}\t${req.url}`, 'errLog.log');
 
   console.log(err.stack);
   console.log(err.message);
 
-  // res.statusCode(status);
-
-  res.json({ message: errMessage });
+  res.status(400).json({ message: errMessage });
 };
