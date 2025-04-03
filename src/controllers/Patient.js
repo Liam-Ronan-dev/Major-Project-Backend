@@ -89,7 +89,7 @@ export const getAllPatients = async (req, res) => {
               select: 'email',
             },
           ],
-          select: 'diagnosis pharmacyName pharmacistId items',
+          select: 'diagnosis pharmacistId items',
         })
         .populate({
           path: 'appointments',
@@ -133,7 +133,7 @@ export const getAllPatients = async (req, res) => {
               select: 'email',
             },
           ],
-          select: 'diagnosis pharmacyName pharmacistId items',
+          select: 'diagnosis pharmacistId items',
         })
         .populate({
           path: 'appointments',
@@ -174,7 +174,7 @@ export const getPatientById = async (req, res) => {
       .populate({
         path: 'prescriptions',
         model: 'Prescription',
-        select: 'diagnosis pharmacyName medications pharmacistId',
+        select: 'medications pharmacistId',
       })
       .populate({
         path: 'appointments',

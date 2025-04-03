@@ -64,12 +64,6 @@ const itemValidations = [
 const prescriptionFields = [
   body('patientId').isMongoId().withMessage('Invalid patient ID format.'),
   body('pharmacistId').isMongoId().withMessage('Invalid pharmacist ID format.'),
-  body('pharmacyName')
-    .notEmpty()
-    .withMessage('Pharmacy name is required.')
-    .bail()
-    .isString()
-    .withMessage('Pharmacy name must be a string.'),
   body('generalInstructions')
     .notEmpty()
     .withMessage('General instructions are required.')

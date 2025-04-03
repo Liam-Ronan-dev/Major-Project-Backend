@@ -27,12 +27,6 @@ const PrescriptionSchema = new mongoose.Schema({
       ref: 'Item',
     },
   ],
-  pharmacyName: {
-    type: String,
-    required: true,
-    set: encryptData,
-    get: decryptData,
-  },
   repeats: {
     type: Number,
     required: true,

@@ -8,10 +8,9 @@ import { io, connectedUsers } from '../index.js';
 // Create Prescription - doctor
 export const createPrescription = async (req, res) => {
   try {
-    const { patientId, pharmacistId, pharmacyName, generalInstructions, repeats, notes, items } =
-      req.body;
+    const { patientId, pharmacistId, generalInstructions, repeats, notes, items } = req.body;
 
-    if (!patientId || !pharmacistId || !pharmacyName || !repeats || !items.length) {
+    if (!patientId || !pharmacistId || !repeats || !items.length) {
       return res.status(400).json({ message: 'Missing required fields' });
     }
 
@@ -26,7 +25,6 @@ export const createPrescription = async (req, res) => {
       doctorId: req.user.id,
       patientId,
       pharmacistId,
-      pharmacyName,
       generalInstructions,
       repeats,
       notes,
@@ -102,8 +100,7 @@ export const createPrescription = async (req, res) => {
 export const updatePrescription = async (req, res) => {
   try {
     const { id } = req.params;
-    const { patientId, pharmacistId, pharmacyName, generalInstructions, repeats, notes, items } =
-      req.body;
+    const { patientId, pharmacistId, generalInstructions, repeats, notes, items } = req.body;
 
     // Ensure prescription exists
     let prescription = await Prescription.findById(id);
@@ -114,7 +111,6 @@ export const updatePrescription = async (req, res) => {
     // Update prescription fields
     prescription.patientId = patientId;
     prescription.pharmacistId = pharmacistId;
-    prescription.pharmacyName = pharmacyName;
     prescription.generalInstructions = generalInstructions;
     prescription.repeats = repeats;
     prescription.notes = notes;
