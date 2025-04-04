@@ -44,7 +44,7 @@ const seedPrescriptions = async () => {
 
     const prescriptions = [];
 
-    for (let i = 0; i < 40; i++) {
+    for (let i = 0; i < 20; i++) {
       const randomPatient = faker.helpers.arrayElement(patients);
 
       // Create the prescription first so we have its _id
@@ -78,6 +78,10 @@ const seedPrescriptions = async () => {
 
       prescription.items = itemIds;
       await prescription.save();
+
+      // Push prescription to the patient's prescriptions array
+      randomPatient.prescriptions.push(prescription._id);
+      await randomPatient.save();
 
       prescriptions.push(prescription);
     }

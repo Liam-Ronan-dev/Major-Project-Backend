@@ -214,7 +214,7 @@ export const getPrescriptionById = async (req, res) => {
     const userId = req.user.id;
 
     const prescription = await Prescription.findById(id)
-      .populate('patientId', 'firstName lastName dateOfBirth')
+      .populate('patientId', 'firstName lastName dateOfBirth email phoneNumber')
       .populate('pharmacistId', 'email')
       .populate('doctorId', 'email')
       .populate({
