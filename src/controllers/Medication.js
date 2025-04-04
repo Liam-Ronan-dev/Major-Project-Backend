@@ -1,37 +1,9 @@
 import { Medication } from '../models/Medication.js';
 
-// Create a medication (Pharmacist Only)
-export const createMedication = async (req, res) => {
-  try {
-    const { name, form, stock, supplier, price } = req.body;
-
-    if (!name || !form || !stock || !supplier || !price) {
-      return res.status(400).json({ message: 'Missing required fields' });
-    }
-
-    const newMedication = await Medication.create({
-      name,
-      form,
-      stock,
-      supplier,
-      price,
-      pharmacistId: req.user.id,
-    });
-
-    res.status(201).json({
-      message: 'Medication created successfully',
-      medication: newMedication,
-    });
-  } catch (error) {
-    console.error('Error creating medication:', error);
-    res.status(500).json({ message: 'Failed to create medication' });
-  }
-};
-
 // Get All medications (Doctor & pharmacist)
 export const getAllMedications = async (req, res) => {
   try {
-    const medications = await Medication.find().populate('pharmacistId', 'email');
+    const medications = await Medication.find();
 
     if (!medications.length) {
       return res.status(404).json({ message: 'No medications found' });
@@ -44,12 +16,11 @@ export const getAllMedications = async (req, res) => {
   }
 };
 
-// Single medication By id
+// Get single medication by ID
 export const getMedicationById = async (req, res) => {
   try {
     const { id } = req.params;
-
-    const medication = await Medication.findById(id).populate('pharmacistId', 'email');
+    const medication = await Medication.findById(id);
 
     if (!medication) {
       return res.status(404).json({ message: 'Medication not found' });
@@ -62,44 +33,26 @@ export const getMedicationById = async (req, res) => {
   }
 };
 
-// Update a medication (Pharmacist only)
-export const updateMedication = async (req, res) => {
+// Search medications by name
+export const searchMedications = async (req, res) => {
   try {
-    const { id } = req.params;
-    const updateData = req.body;
+    const { name } = req.query;
 
-    const updatedMedication = await Medication.findByIdAndUpdate(id, updateData, {
-      new: true,
-    });
-
-    if (!updatedMedication) {
-      return res.status(404).json({ message: 'Medication not found' });
+    if (!name || name.length < 2) {
+      return res.status(400).json({ message: 'Search term must be at least 2 characters' });
     }
 
-    res.status(200).json({ message: 'Medication updated successfully', data: updatedMedication });
-  } catch (error) {
-    console.error('Error updating medication:', error);
-    res.status(500).json({ message: 'Failed to update medication' });
-  }
-};
+    const medications = await Medication.find({
+      name: { $regex: name, $options: 'i' },
+    }).limit(20);
 
-// Delete a medication (Pharmacists Only)
-export const deleteMedication = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const medication = await Medication.findByIdAndDelete({
-      _id: id,
-      pharmacistId: req.user.id, // Only delete if the pharmacist owns it
-    });
-
-    if (!medication) {
-      return res.status(404).json({ message: 'Medication not found' });
+    if (!medications.length) {
+      return res.status(404).json({ message: 'No matching medications found' });
     }
 
-    res.status(200).json({ message: 'Medication deleted successfully' });
+    res.status(200).json({ count: medications.length, data: medications });
   } catch (error) {
-    console.error('Error deleting medication:', error);
-    res.status(500).json({ message: 'Failed to delete medication' });
+    console.error('Error searching medications:', error);
+    res.status(500).json({ message: 'Failed to search medications' });
   }
 };

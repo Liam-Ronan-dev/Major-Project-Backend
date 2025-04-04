@@ -1,5 +1,38 @@
 import { Patient } from '../models/Patient.js';
 
+const prescriptionPopulation = {
+  path: 'prescriptions',
+  model: 'Prescription',
+  populate: [
+    {
+      path: 'items',
+      model: 'Item',
+      populate: {
+        path: 'medicationId',
+        model: 'Medication',
+        select: 'name activeSubstance routeOfAdministration',
+      },
+    },
+    {
+      path: 'pharmacistId',
+      model: 'User',
+      select: 'email',
+    },
+    {
+      path: 'doctorId',
+      model: 'User',
+      select: 'email',
+    },
+  ],
+  select: 'items status notes pharmacistId doctorId createdAt updatedAt',
+};
+
+const appointmentPopulation = {
+  path: 'appointments',
+  model: 'Appointment',
+  select: 'date status notes',
+};
+
 // Create new Patient (Doctor Only)
 export const createPatient = async (req, res) => {
   try {
@@ -61,90 +94,17 @@ export const getAllPatients = async (req, res) => {
     let patients;
 
     if (req.user.role === 'doctor') {
-      // ✅ Fetch patients for the doctor
+      // Fetch patients for the doctor
       patients = await Patient.find({ doctorId: req.user.id })
-        .populate({
-          path: 'prescriptions',
-          model: 'Prescription',
-          populate: [
-            {
-              path: 'items',
-              model: 'Item',
-              populate: [
-                {
-                  path: 'medications',
-                  model: 'Medication',
-                  select: 'name form',
-                },
-                {
-                  path: 'dosages',
-                  model: 'Dosage',
-                  select: 'amount frequency duration notes',
-                },
-              ],
-            },
-            {
-              path: 'pharmacistId',
-              model: 'User',
-              select: 'email',
-            },
-          ],
-          select: 'diagnosis pharmacistId items',
-        })
-        .populate({
-          path: 'appointments',
-          model: 'Appointment',
-          select: 'date status notes',
-        })
-        .populate({
-          path: 'doctorId',
-          model: 'User',
-          select: 'email',
-        });
+        .populate(prescriptionPopulation)
+        .populate(appointmentPopulation);
     } else if (req.user.role === 'pharmacist') {
-      // ✅ Fetch patients where the pharmacist is assigned to prescriptions
+      // Fetch patients where the pharmacist is assigned to prescriptions
       patients = await Patient.find({
         prescriptions: { $exists: true, $not: { $size: 0 } },
       })
-        .populate({
-          path: 'prescriptions',
-          model: 'Prescription',
-          match: { pharmacistId: req.user.id },
-          populate: [
-            {
-              path: 'items',
-              model: 'Item',
-              populate: [
-                {
-                  path: 'medications',
-                  model: 'Medication',
-                  select: 'name form',
-                },
-                {
-                  path: 'dosages',
-                  model: 'Dosage',
-                  select: 'amount frequency duration notes',
-                },
-              ],
-            },
-            {
-              path: 'pharmacistId',
-              model: 'User',
-              select: 'email',
-            },
-          ],
-          select: 'diagnosis pharmacistId items',
-        })
-        .populate({
-          path: 'appointments',
-          model: 'Appointment',
-          select: 'date status notes',
-        })
-        .populate({
-          path: 'doctorId',
-          model: 'User',
-          select: 'email',
-        });
+        .populate(prescriptionPopulation)
+        .populate(appointmentPopulation);
 
       patients = patients.filter((p) => p.prescriptions && p.prescriptions.length > 0);
     } else {
@@ -171,16 +131,8 @@ export const getPatientById = async (req, res) => {
     const { id } = req.params;
 
     const patient = await Patient.findById(id)
-      .populate({
-        path: 'prescriptions',
-        model: 'Prescription',
-        select: 'medications',
-      })
-      .populate({
-        path: 'appointments',
-        model: 'Appointment',
-        select: 'date status notes',
-      })
+      .populate(prescriptionPopulation)
+      .populate(appointmentPopulation)
       .populate({
         path: 'doctorId',
         model: 'User',

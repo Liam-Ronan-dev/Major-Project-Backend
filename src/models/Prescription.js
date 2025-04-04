@@ -27,20 +27,10 @@ const PrescriptionSchema = new mongoose.Schema({
       ref: 'Item',
     },
   ],
-  repeats: {
-    type: Number,
-    required: true,
-  },
-  generalInstructions: {
-    type: String,
-    required: true,
-    set: encryptData,
-    get: decryptData,
-  },
   status: {
     type: String,
-    enum: ['Pending', 'Processed', 'Completed', 'Cancelled'],
-    default: 'Pending',
+    enum: ['Assigned', 'Pending', 'Processed', 'Completed', 'Cancelled'],
+    default: 'Assigned',
   },
   notes: {
     type: String,
@@ -57,7 +47,7 @@ const PrescriptionSchema = new mongoose.Schema({
   },
 });
 
-// ✅ Auto-generate `prescriptionId` if missing
+// Auto-generate `prescriptionId` if missing
 PrescriptionSchema.pre('save', function (next) {
   if (!this.prescriptionId) {
     this.prescriptionId = new mongoose.Types.ObjectId().toHexString();
@@ -65,7 +55,7 @@ PrescriptionSchema.pre('save', function (next) {
   next();
 });
 
-// ✅ Enable automatic decryption when retrieving data
+// Enable automatic decryption when retrieving data
 PrescriptionSchema.set('toJSON', { getters: true });
 PrescriptionSchema.set('toObject', { getters: true });
 

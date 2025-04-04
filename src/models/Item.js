@@ -7,24 +7,39 @@ const ItemSchema = new mongoose.Schema({
     ref: 'Prescription',
     required: true,
   },
-  medications: [
-    {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Medication',
-    },
-  ],
+  medicationId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Medication',
+    required: true,
+  },
   specificInstructions: {
     type: String,
     required: true,
     set: encryptData,
     get: decryptData,
   },
-  dosages: [
-    {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Dosage',
-    },
-  ],
+  repeats: {
+    type: Number,
+    default: 0,
+  },
+  dosage: {
+    type: String,
+    required: true,
+    set: encryptData,
+    get: decryptData,
+  },
+  amount: {
+    type: String,
+    required: true,
+    set: encryptData,
+    get: decryptData,
+  },
+  pharmacistNote: {
+    type: String,
+    default: null,
+    set: encryptData,
+    get: decryptData,
+  },
 });
 
 ItemSchema.set('toJSON', { getters: true });

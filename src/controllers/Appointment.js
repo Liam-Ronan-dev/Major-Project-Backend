@@ -12,7 +12,7 @@ export const createAppointment = async (req, res) => {
       });
     }
 
-    // ✅ Check if the doctor owns this patient
+    // Check if the doctor owns this patient
     const patient = await Patient.findOne({
       _id: patientId,
       doctorId: req.user.id,

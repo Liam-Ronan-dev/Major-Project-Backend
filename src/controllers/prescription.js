@@ -1,6 +1,5 @@
 import { Prescription } from '../models/Prescription.js';
 import { Item } from '../models/Item.js';
-import { Dosage } from '../models/Dosage.js';
 import { Patient } from '../models/Patient.js';
 import { Medication } from '../models/Medication.js';
 import { io, connectedUsers } from '../index.js';
@@ -8,80 +7,63 @@ import { io, connectedUsers } from '../index.js';
 // Create Prescription - doctor
 export const createPrescription = async (req, res) => {
   try {
-    const { patientId, pharmacistId, generalInstructions, repeats, notes, items } = req.body;
+    const { patientId, pharmacistId, notes, items } = req.body;
 
-    if (!patientId || !pharmacistId || !repeats || !items.length) {
+    if (!patientId || !pharmacistId || !items?.length) {
       return res.status(400).json({ message: 'Missing required fields' });
     }
 
-    // Ensure patient belongs to doctor
+    // Ensure patient belongs to the doctor
     const patient = await Patient.findOne({ _id: patientId, doctorId: req.user.id });
     if (!patient) {
       return res.status(403).json({ message: 'You can only prescribe for your own patients' });
     }
 
-    // Create the Prescription
     const prescription = await Prescription.create({
       doctorId: req.user.id,
       patientId,
       pharmacistId,
-      generalInstructions,
-      repeats,
       notes,
     });
 
+    // Create items
+    const itemIds = await Promise.all(
+      items.map(async (item) => {
+        const { medicationId, dosage, amount, specificInstructions, repeats, pharmacistNote } =
+          item;
+
+        const medication = await Medication.findById(medicationId);
+        if (!medication) throw new Error(`Medication not found: ${medicationId}`);
+
+        const newItem = await Item.create({
+          prescriptionId: prescription._id,
+          medicationId,
+          dosage,
+          amount,
+          specificInstructions,
+          pharmacistNote,
+          repeats: repeats ?? 0,
+        });
+
+        return newItem._id;
+      })
+    );
+
+    prescription.items = itemIds;
+    await prescription.save();
+
+    // Pushing to the patients model
     await Patient.findByIdAndUpdate(patientId, {
       $push: { prescriptions: prescription._id },
     });
 
-    // Loop over each item in the items array
-    const itemPromises = items.map(async (item) => {
-      const { medications, specificInstructions, dosages } = item;
-
-      // Create the Item
-      const newItem = await Item.create({
-        prescriptionId: prescription._id,
-        medications,
-        specificInstructions,
-      });
-
-      // Process Each Dosage for the Item
-      const dosagePromises = dosages.map(async (dosage) => {
-        const { medicationId, amount, frequency, duration, notes } = dosage;
-
-        // Ensure medication exists
-        const medication = await Medication.findById(medicationId);
-        if (!medication) throw new Error(`Medication with ID ${medicationId} not found`);
-
-        return Dosage.create({
-          itemId: newItem._id,
-          medicationId,
-          amount,
-          frequency,
-          duration,
-          notes,
-        });
-      });
-
-      // Attach Dosages to the Item
-      const createdDosages = await Promise.all(dosagePromises);
-      newItem.dosages = createdDosages.map((dosage) => dosage._id);
-      await newItem.save();
-
-      return newItem._id;
-    });
-
-    // Attach Items to the Prescription
-    prescription.items = await Promise.all(itemPromises);
-    await prescription.save();
-
+    // Notify pharmacist
     const pharmacistSocketId = connectedUsers.get(pharmacistId);
-
     if (pharmacistSocketId) {
       io.to(pharmacistSocketId).emit('new-prescription', {
         prescriptionId: prescription._id,
         message: `A new prescription has been assigned to you.`,
-        patient: patient.firstName + ' ' + patient.lastName,
+        patient: `${patient.firstName} ${patient.lastName}`,
         createdAt: prescription.createdAt,
       });
     }
@@ -100,74 +82,57 @@ export const createPrescription = async (req, res) => {
 export const updatePrescription = async (req, res) => {
   try {
     const { id } = req.params;
-    const { patientId, pharmacistId, generalInstructions, repeats, notes, items } = req.body;
+    const { patientId, pharmacistId, notes, items } = req.body;
 
-    // Ensure prescription exists
-    let prescription = await Prescription.findById(id);
+    const prescription = await Prescription.findById(id);
     if (!prescription) {
       return res.status(404).json({ message: 'Prescription not found' });
     }
 
-    // Update prescription fields
+    if (prescription.status !== 'Assigned') {
+      return res.status(403).json({
+        message: `Cannot update prescription — status is '${prescription.status}'`,
+      });
+    }
+
+    const patient = await Patient.findOne({ _id: patientId, doctorId: req.user.id });
+    if (!patient) {
+      return res.status(403).json({
+        message: 'You can only prescribe for your own patients',
+      });
+    }
+
     prescription.patientId = patientId;
     prescription.pharmacistId = pharmacistId;
-    prescription.generalInstructions = generalInstructions;
-    prescription.repeats = repeats;
     prescription.notes = notes;
 
-    // Process `items` (Update or Create new)
-    const updatedItems = await Promise.all(
+    // Delete old items
+    await Item.deleteMany({ prescriptionId: prescription._id });
+
+    // Create new items
+    const itemIds = await Promise.all(
       items.map(async (item) => {
-        let existingItem = await Item.findOne({
-          prescriptionId: id,
-          medications: item.medications,
-          specificInstructions: item.specificInstructions,
+        const { medicationId, dosage, amount, specificInstructions, pharmacistNote, repeats } =
+          item;
+
+        const medication = await Medication.findById(medicationId);
+        if (!medication) throw new Error(`Medication not found: ${medicationId}`);
+
+        const newItem = await Item.create({
+          prescriptionId: prescription._id,
+          medicationId,
+          dosage,
+          amount,
+          specificInstructions,
+          pharmacistNote, // optional
+          repeats: repeats ?? 0,
         });
 
-        if (!existingItem) {
-          // Create new Item if it doesn't exist
-          existingItem = await Item.create({
-            prescriptionId: id,
-            medications: item.medications,
-            specificInstructions: item.specificInstructions,
-          });
-        }
-
-        // Process Dosages for this Item
-        const updatedDosages = await Promise.all(
-          item.dosages.map(async (dosage) => {
-            let existingDosage = await Dosage.findOne({
-              itemId: existingItem._id,
-              medicationId: dosage.medicationId,
-              amount: dosage.amount,
-              frequency: dosage.frequency,
-              duration: dosage.duration,
-              notes: dosage.notes,
-            });
-
-            if (!existingDosage) {
-              existingDosage = await Dosage.create({
-                itemId: existingItem._id,
-                medicationId: dosage.medicationId,
-                amount: dosage.amount,
-                frequency: dosage.frequency,
-                duration: dosage.duration,
-                notes: dosage.notes,
-              });
-            }
-            return existingDosage._id; // Return Dosage ID
-          })
-        );
-
-        existingItem.dosages = updatedDosages;
-        await existingItem.save();
-
-        return existingItem._id; // Return Item ID
+        return newItem._id;
       })
     );
 
-    // Update prescription with the new `items` references
-    prescription.items = updatedItems;
+    prescription.items = itemIds;
     await prescription.save();
 
     res.status(200).json({
@@ -185,24 +150,27 @@ export const deletePrescription = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Find and delete prescription
-    const prescription = await Prescription.findOneAndDelete({
-      _id: id,
-      doctorId: req.user.id,
-    });
+    // Find the prescription first
+    const prescription = await Prescription.findById(id);
 
     if (!prescription) {
-      return res.status(404).json({ message: 'Prescription not found or unauthorized' });
+      return res.status(404).json({ message: 'Prescription not found' });
     }
 
-    // Delete associated items & dosages
-    const items = await Item.find({ prescriptionId: id });
-    const itemIds = items.map((item) => item._id);
+    // Prevent deletion if status is not "Assigned"
+    if (prescription.status !== 'Assigned') {
+      return res.status(403).json({
+        message: `Cannot delete prescription — status is '${prescription.status}'`,
+      });
+    }
 
+    // Delete all related items
     await Item.deleteMany({ prescriptionId: id });
-    await Dosage.deleteMany({ itemId: { $in: itemIds } });
 
-    res.status(200).json({ message: 'Prescription deleted successfully' });
+    // Now delete the prescription
+    await prescription.deleteOne();
+
+    res.status(200).json({ message: 'Prescription and related items deleted successfully' });
   } catch (error) {
     console.error('Error deleting prescription:', error);
     res.status(500).json({ message: 'Failed to delete prescription' });
@@ -212,55 +180,28 @@ export const deletePrescription = async (req, res) => {
 // Get All Prescriptions (Doctors & Pharmacists)
 export const getAllPrescriptions = async (req, res) => {
   try {
-    let prescriptions;
+    const role = req.user.role;
+    const userId = req.user.id;
 
-    if (req.user.role === 'doctor') {
-      prescriptions = await Prescription.find({ doctorId: req.user.id })
-        .populate('items')
-        .populate({
-          path: 'items',
-          populate: {
-            path: 'medications',
-            select: 'name form',
-          },
-        })
-        .populate({
-          path: 'items',
-          populate: {
-            path: 'dosages',
-            select: 'amount frequency duration notes',
-          },
-        })
-        .populate('patientId', 'firstName lastName')
-        .populate('doctorId', 'email')
-        .populate('pharmacistId', 'email');
-    } else if (req.user.role === 'pharmacist') {
-      prescriptions = await Prescription.find({ pharmacistId: req.user.id })
-        .populate('items')
-        .populate({
-          path: 'items',
-          populate: {
-            path: 'medications',
-            select: 'name form',
-          },
-        })
-        .populate({
-          path: 'items',
-          populate: {
-            path: 'dosages',
-            select: 'amount frequency duration notes',
-          },
-        })
-        .populate('patientId', 'firstName lastName')
-        .populate('doctorId', 'email')
-        .populate('pharmacistId', 'email');
-    } else {
-      return res.status(403).json({ message: 'Unauthorized' });
-    }
+    const filter = role === 'doctor' ? { doctorId: userId } : { pharmacistId: userId };
 
-    res.status(200).json({ data: prescriptions });
-  } catch (error) {
-    console.error('Error fetching prescriptions:', error);
+    const prescriptions = await Prescription.find(filter)
+      .populate('patientId', 'firstName lastName dateOfBirth')
+      .populate('pharmacistId', 'email')
+      .populate('doctorId', 'email')
+      .populate({
+        path: 'items',
+        select: 'medicationId dosage amount specificInstructions pharmacistNote repeats',
+        populate: {
+          path: 'medicationId',
+          select: 'name activeSubstance',
+        },
+      })
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({ count: prescriptions.length, data: prescriptions });
+  } catch (err) {
+    console.error('Error fetching prescriptions:', err);
     res.status(500).json({ message: 'Failed to fetch prescriptions' });
   }
 };
@@ -269,72 +210,87 @@ export const getAllPrescriptions = async (req, res) => {
 export const getPrescriptionById = async (req, res) => {
   try {
     const { id } = req.params;
+    const role = req.user.role;
+    const userId = req.user.id;
 
     const prescription = await Prescription.findById(id)
-      .populate('items')
-      .populate({
-        path: 'items',
-        populate: {
-          path: 'medications',
-          select: 'name form',
-        },
-      })
-      .populate({
-        path: 'items',
-        populate: {
-          path: 'dosages',
-          select: 'amount frequency duration notes',
-        },
-      })
-      .populate('patientId', 'firstName lastName')
+      .populate('patientId', 'firstName lastName dateOfBirth')
+      .populate('pharmacistId', 'email')
       .populate('doctorId', 'email')
-      .populate('pharmacistId', 'email');
+      .populate({
+        path: 'items',
+        select: 'medicationId dosage amount specificInstructions pharmacistNote repeats',
+        populate: {
+          path: 'medicationId',
+          select: 'name activeSubstance',
+        },
+      });
 
     if (!prescription) {
       return res.status(404).json({ message: 'Prescription not found' });
     }
 
+    // Authorization check
+    if (
+      (role === 'doctor' && prescription.doctorId._id.toString() !== userId) ||
+      (role === 'pharmacist' && prescription.pharmacistId._id.toString() !== userId)
+    ) {
+      return res.status(403).json({ message: 'You are not authorized to view this prescription' });
+    }
+
     res.status(200).json({ data: prescription });
-  } catch (error) {
-    console.error('Error fetching prescription:', error);
+  } catch (err) {
+    console.error('Error fetching prescription:', err);
     res.status(500).json({ message: 'Failed to fetch prescription' });
   }
 };
 
 // Update status & notes of Prescription - pharmacists
-export const updatePrescriptionStatus = async (req, res) => {
+export const updatePrescriptionStatusAndNotes = async (req, res) => {
   try {
     const { id } = req.params;
-    const { notes, status } = req.body;
+    const { status, notes, itemNotes } = req.body; // itemNotes = [{ itemId, pharmacistNote }]
 
     if (req.user.role !== 'pharmacist') {
-      return res.status(403).json({ message: 'Unauthorized: Only pharmacists can update status' });
+      return res.status(403).json({ message: 'Only pharmacists can update prescriptions' });
     }
 
-    // Validate status update
     const allowedStatuses = ['Pending', 'Processed', 'Completed', 'Cancelled'];
     if (status && !allowedStatuses.includes(status)) {
       return res.status(400).json({ message: 'Invalid status update' });
     }
 
-    // Find the prescription & ensure the pharmacist is assigned
-    const prescription = await Prescription.findOne({
-      _id: id,
-      pharmacistId: req.user.id,
-    });
+    const prescription = await Prescription.findById(id);
 
     if (!prescription) {
-      return res.status(404).json({ message: 'Prescription not found or unauthorized' });
+      return res.status(404).json({ message: 'Prescription not found' });
     }
 
-    // Update only `notes` and `status`
-    if (notes) prescription.notes = notes;
+    // Update status and notes if provided
     if (status) prescription.status = status;
+    if (notes) prescription.notes = notes;
 
     await prescription.save();
 
-    const doctorSocketId = connectedUsers.get(prescription.doctorId.toString());
+    // Update pharmacist notes on individual items
+    if (Array.isArray(itemNotes)) {
+      await Promise.all(
+        itemNotes.map(async ({ itemId, pharmacistNote }) => {
+          const item = await Item.findOne({
+            _id: itemId,
+            prescriptionId: prescription._id,
+          });
 
+          if (item && pharmacistNote !== undefined) {
+            item.pharmacistNote = pharmacistNote;
+            await item.save();
+          }
+        })
+      );
+    }
+
+    // Notify doctor via socket
+    const doctorSocketId = connectedUsers.get(prescription.doctorId.toString());
     if (doctorSocketId) {
       const patient = await Patient.findById(prescription.patientId);
 
@@ -357,7 +313,7 @@ export const updatePrescriptionStatus = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Error updating prescription status:', error);
-    res.status(500).json({ message: 'Failed to update prescription status' });
+    console.error('Error updating prescription:', error);
+    res.status(500).json({ message: 'Failed to update prescription' });
   }
 };

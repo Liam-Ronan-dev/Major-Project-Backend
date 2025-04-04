@@ -1,15 +1,16 @@
 import express from 'express';
 import { ensureAuthenticated } from '../modules/auth.js';
-import { authorizeRoles } from '../middleware/auth.js';
-import { verifyOwnership } from '../middleware/auth.js';
+import { authorizeRoles, verifyOwnership } from '../middleware/auth.js';
+
 import {
   createPrescription,
   deletePrescription,
   getAllPrescriptions,
   getPrescriptionById,
   updatePrescription,
-  updatePrescriptionStatus,
+  updatePrescriptionStatusAndNotes,
 } from '../controllers/prescription.js';
+
 import {
   validateCreatePrescription,
   validateDeletePrescription,
@@ -17,11 +18,12 @@ import {
   validatePatchPrescription,
   validateUpdatePrescription,
 } from '../utils/validators/validatePrescription.js';
+
 import { handleInputErrors } from '../middleware/errors.js';
 
 const router = express.Router();
 
-// Doctors can only create prescriptions
+// Doctor: Create prescription
 router.post(
   '/prescriptions',
   ensureAuthenticated,
@@ -31,7 +33,7 @@ router.post(
   createPrescription
 );
 
-// Doctors can only update their own prescriptions
+// Doctor: Update their own prescription
 router.put(
   '/prescription/:id',
   ensureAuthenticated,
@@ -42,7 +44,7 @@ router.put(
   updatePrescription
 );
 
-// Doctors can only delete their own prescriptions
+// Doctor: Delete their own prescription
 router.delete(
   '/prescription/:id',
   ensureAuthenticated,
@@ -53,7 +55,7 @@ router.delete(
   deletePrescription
 );
 
-// Doctors can only view their own prescriptions & Pharmacists can only view assigned ones
+// Doctor/Pharmacist: View all accessible prescriptions
 router.get(
   '/prescriptions',
   ensureAuthenticated,
@@ -61,7 +63,7 @@ router.get(
   getAllPrescriptions
 );
 
-// Doctors can only access their own prescriptions & Pharmacists can only access assigned ones
+// Doctor/Pharmacist: View a single prescription
 router.get(
   '/prescription/:id',
   ensureAuthenticated,
@@ -72,13 +74,15 @@ router.get(
   getPrescriptionById
 );
 
+// Pharmacist: Update prescription status and notes
 router.patch(
   '/prescription/:id/status',
   ensureAuthenticated,
   authorizeRoles('pharmacist'),
+  verifyOwnership('Prescription'),
   validatePatchPrescription,
   handleInputErrors,
-  updatePrescriptionStatus
+  updatePrescriptionStatusAndNotes
 );
 
 export default router;
