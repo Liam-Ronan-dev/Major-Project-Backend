@@ -174,7 +174,7 @@ export const getPatientById = async (req, res) => {
       .populate({
         path: 'prescriptions',
         model: 'Prescription',
-        select: 'medications pharmacistId',
+        select: 'medications',
       })
       .populate({
         path: 'appointments',
