@@ -16,7 +16,6 @@ export const authorizeRoles = (...roles) => {
 };
 
 // Ownership middleware - To verify that the logged in user can only access their own created resources
-
 export const verifyOwnership = (modelType) => {
   return async (req, res, next) => {
     try {
