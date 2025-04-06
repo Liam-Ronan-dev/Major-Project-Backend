@@ -11,7 +11,6 @@ import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import http from 'http';
 import { Server } from 'socket.io';
-
 import { connectDB } from './config/db.js';
 
 // Resource Routes
@@ -76,6 +75,7 @@ app.get('/api/health', (req, res) => {
   res.json({ message: 'hello world!' });
 });
 
+// Use routes
 app.use('/api', userRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api', prescriptionRoutes);
@@ -83,7 +83,10 @@ app.use('/api', appointmentRoutes);
 app.use('/api', patientRoutes);
 app.use('/api', medicationRoutes);
 
+// Forward errors to the error logger
 app.use(errorHandlerLogger);
+
+// Using the reusable database connection function
 connectDB();
 
 export default app;
