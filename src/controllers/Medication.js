@@ -1,6 +1,6 @@
 import { Medication } from '../models/Medication.js';
 
-// Get All medications (Doctor & pharmacist)
+// Get All medications (Doctor)
 export const getAllMedications = async (req, res) => {
   try {
     const medications = await Medication.find();

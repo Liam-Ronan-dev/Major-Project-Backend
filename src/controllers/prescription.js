@@ -249,7 +249,7 @@ export const getPrescriptionById = async (req, res) => {
 export const updatePrescriptionStatusAndNotes = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, notes, itemNotes } = req.body; // itemNotes = [{ itemId, pharmacistNote }]
+    const { status, notes, itemNotes } = req.body;
 
     if (req.user.role !== 'pharmacist') {
       return res.status(403).json({ message: 'Only pharmacists can update prescriptions' });
