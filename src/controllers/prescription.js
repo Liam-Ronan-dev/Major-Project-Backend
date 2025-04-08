@@ -214,7 +214,7 @@ export const getPrescriptionById = async (req, res) => {
     const userId = req.user.id;
 
     const prescription = await Prescription.findById(id)
-      .populate('patientId', 'firstName lastName dateOfBirth email phoneNumber')
+      .populate('patientId', 'firstName lastName email phoneNumber dateOfBirth')
       .populate('pharmacistId', 'email')
       .populate('doctorId', 'email')
       .populate({
@@ -315,5 +315,49 @@ export const updatePrescriptionStatusAndNotes = async (req, res) => {
   } catch (error) {
     console.error('Error updating prescription:', error);
     res.status(500).json({ message: 'Failed to update prescription' });
+  }
+};
+
+// GET latest prescription for a patient (for quick prescribe)
+export const getLatestPrescriptionPatient = async (req, res) => {
+  try {
+    const { patientId } = req.query;
+    const role = req.user.role;
+    const userId = req.user.id;
+
+    if (!patientId) {
+      return res.status(400).json({ message: 'Missing patientId in query' });
+    }
+
+    // Ensure doctor owns the patient
+    if (role === 'doctor') {
+      const patient = await Patient.findOne({ _id: patientId, doctorId: userId });
+      if (!patient) {
+        return res.status(403).json({ message: 'You can only access your own patients' });
+      }
+    }
+
+    const prescription = await Prescription.findOne({ patientId })
+      .sort({ createdAt: -1 })
+      .populate('patientId', 'firstName lastName email')
+      .populate('pharmacistId', 'email')
+      .populate('doctorId', 'email')
+      .populate({
+        path: 'items',
+        select: 'medicationId dosage amount specificInstructions pharmacistNote repeats',
+        populate: {
+          path: 'medicationId',
+          select: 'name activeSubstance',
+        },
+      });
+
+    if (!prescription) {
+      return res.status(404).json({ message: 'No previous prescriptions found for this patient' });
+    }
+
+    res.status(200).json({ data: prescription });
+  } catch (error) {
+    console.error('Error fetching latest prescription:', error);
+    res.status(500).json({ message: 'Failed to fetch latest prescription' });
   }
 };
