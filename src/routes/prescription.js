@@ -6,6 +6,7 @@ import {
   createPrescription,
   deletePrescription,
   getAllPrescriptions,
+  getLatestPrescriptionPatient,
   getPrescriptionById,
   updatePrescription,
   updatePrescriptionStatusAndNotes,
@@ -55,6 +56,13 @@ router.delete(
   deletePrescription
 );
 
+// Doctor: Get the latest prescription for a patient
+router.get(
+  '/prescriptions/latest',
+  ensureAuthenticated,
+  authorizeRoles('doctor'),
+  getLatestPrescriptionPatient
+);
 // Doctor/Pharmacist: View all accessible prescriptions
 router.get(
   '/prescriptions',
