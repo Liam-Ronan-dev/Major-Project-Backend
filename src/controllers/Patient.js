@@ -94,25 +94,29 @@ export const getAllPatients = async (req, res) => {
     let patients;
 
     if (req.user.role === 'doctor') {
-      // Fetch patients for the doctor
+      // Doctors only see patients they created
       patients = await Patient.find({ doctorId: req.user.id })
         .populate(prescriptionPopulation)
         .populate(appointmentPopulation);
     } else if (req.user.role === 'pharmacist') {
-      // Fetch patients where the pharmacist is assigned to prescriptions
-      patients = await Patient.find({
-        prescriptions: { $exists: true, $not: { $size: 0 } },
-      })
-        .populate(prescriptionPopulation)
+      // Fetch all patients with prescriptions, filter only those with prescriptions assigned to this pharmacist
+      const allPatients = await Patient.find()
+        .populate({
+          ...prescriptionPopulation,
+          match: { pharmacistId: req.user.id }, // only prescriptions assigned to this pharmacist
+        })
         .populate(appointmentPopulation);
 
-      patients = patients.filter((p) => p.prescriptions && p.prescriptions.length > 0);
+      // Filter out patients that have no prescriptions assigned to this pharmacist
+      patients = allPatients.filter(
+        (patient) => patient.prescriptions && patient.prescriptions.length > 0
+      );
     } else {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 
     if (!patients.length) {
-      return res.status(400).json({ message: 'No patients found' });
+      return res.status(404).json({ message: 'No patients found' });
     }
 
     res.status(200).json({
@@ -131,7 +135,10 @@ export const getPatientById = async (req, res) => {
     const { id } = req.params;
 
     const patient = await Patient.findById(id)
-      .populate(prescriptionPopulation)
+      .populate({
+        ...prescriptionPopulation,
+        match: req.user.role === 'pharmacist' ? { pharmacistId: req.user.id } : {}, // restrict for pharmacists
+      })
       .populate(appointmentPopulation)
       .populate({
         path: 'doctorId',
@@ -140,6 +147,14 @@ export const getPatientById = async (req, res) => {
       });
 
     if (!patient) return res.status(404).json({ message: 'Patient not found' });
+
+    // If pharmacist and no prescriptions after filter, deny access
+    if (
+      req.user.role === 'pharmacist' &&
+      (!patient.prescriptions || patient.prescriptions.length === 0)
+    ) {
+      return res.status(403).json({ message: 'Unauthorized to view this patient' });
+    }
 
     res.status(200).json({
       data: patient,
