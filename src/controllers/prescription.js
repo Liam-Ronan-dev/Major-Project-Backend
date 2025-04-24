@@ -255,7 +255,7 @@ export const updatePrescriptionStatusAndNotes = async (req, res) => {
       return res.status(403).json({ message: 'Only pharmacists can update prescriptions' });
     }
 
-    const allowedStatuses = ['Pending', 'Processed', 'Completed', 'Cancelled'];
+    const allowedStatuses = ['Assigned', 'Pending', 'Processed', 'Completed', 'Cancelled'];
     if (status && !allowedStatuses.includes(status)) {
       return res.status(400).json({ message: 'Invalid status update' });
     }

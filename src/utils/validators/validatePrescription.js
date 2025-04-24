@@ -71,7 +71,7 @@ export const validatePatchPrescription = [
   prescriptionIdValidation,
   body('status')
     .optional()
-    .isIn(['Pending', 'Processed', 'Completed', 'Cancelled'])
+    .isIn(['Assigned', 'Pending', 'Processed', 'Completed', 'Cancelled'])
     .withMessage('Invalid status.'),
 
   body('notes').optional().isString().withMessage('Notes must be a string.').trim().escape(),
