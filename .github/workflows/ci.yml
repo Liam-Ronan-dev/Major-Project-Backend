@@ -1,4 +1,4 @@
-name: '✅ Run Jest Tests & Format Code'
+name: 'Run Jest Tests & Format Code'
 
 on:
   pull_request:
@@ -16,31 +16,31 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [22.x] # Test on multiple Node.js versions
+        node-version: [22.x]
 
     steps:
-      - name: '📥 Checkout Code'
+      - name: 'Checkout Code'
         uses: actions/checkout@v4
 
-      - name: '👷 Set up Node.js ${{ matrix.node-version }}'
+      - name: 'Set up Node.js ${{ matrix.node-version }}'
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
 
-      - name: '📦 Install Dependencies'
+      - name: 'Install Dependencies'
         run: npm ci
 
         # Ensures commit messages follow conventions - Checks all commits, PRs, pushes
-      - name: '📜 Validate commit messages with CommitLint'
+      - name: 'Validate commit messages with CommitLint'
         if: github.event_name == 'push'
         run: npx commitlint --last --verbose
 
-      - name: '🎨 Check Code Formatting with Prettier'
+      - name: 'Check Code Formatting with Prettier'
         run: npm run format
 
-      - name: '🔍 Check ESLint'
+      - name: 'Check ESLint'
         run: npm run lint
 
-      - name: '🧪 Run Jest Tests'
+      - name: 'Run Jest Tests'
         run: npm run test

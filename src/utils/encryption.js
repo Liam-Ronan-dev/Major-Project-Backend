@@ -15,10 +15,10 @@ export const encryptData = (data) => {
     // Generate a unique IV for each encryption
     const iv = crypto.randomBytes(ivLength);
 
-    // Create cipher instance
+    // Create cipher instance - AES-256-GCM with the encryption key and IV
     const cipher = crypto.createCipheriv(algorithm, encryptionKey, iv);
 
-    // Encrypt Data
+    // Encrypt Data - UTF-8 encoding
     let encrypted = cipher.update(data, 'utf8', 'hex');
     encrypted += cipher.final('hex');
 
@@ -43,14 +43,12 @@ export const decryptData = (encryptedString) => {
   try {
     const { iv, authTag, encryptData } = JSON.parse(encryptedString);
 
-    const decipher = crypto.createDecipheriv(
-      algorithm,
-      encryptionKey,
-      Buffer.from(iv, 'hex')
-    );
+    //  Create decipher using the same algorithm, key, and IV
+    const decipher = crypto.createDecipheriv(algorithm, encryptionKey, Buffer.from(iv, 'hex'));
 
     decipher.setAuthTag(Buffer.from(authTag, 'hex'));
 
+    // Decrypt the data and return as UTF-8
     let decrypted = decipher.update(encryptData, 'hex', 'utf8');
     decrypted += decipher.final('utf8');
 

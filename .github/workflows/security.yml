@@ -9,19 +9,19 @@ on:
 
 jobs:
   security:
-    name: 🔍 Security Scan (Snyk)
+    name: Security Scan (Snyk)
     runs-on: ubuntu-latest
     steps:
-      - name: 📥 Checkout Code
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Install Node.js 🟢
+      - name: Install Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'npm'
 
-      - name: Cache Snyk CLI 🔄
+      - name: Cache Snyk CLI
         id: snyk-cache
         uses: actions/cache@v3
         with:
@@ -29,11 +29,11 @@ jobs:
           key: snyk-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
           restore-keys: snyk-${{ runner.os }}-
 
-      - name: 🔧 Install Snyk CLI (Only If Not Cached)
+      - name: Install Snyk CLI (Only If Not Cached)
         if: steps.snyk-cache.outputs.cache-hit != 'true'
         run: npm install -g snyk
 
-      - name: 🛡️ Display Snyk ASCII Logo & Run Security Scan
+      - name: Display Snyk ASCII Logo & Run Security Scan
         run: |
           echo "   _____       _   _ _   "
           echo "  / ____|     | | (_) |  "
@@ -47,15 +47,15 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
   sonarcloud:
-    name: 🔎 SonarCloud Scan
+    name: SonarCloud Scan
     runs-on: ubuntu-latest
     steps:
-      - name: 📥 Checkout Code
+      - name: Checkout Code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0 # Required for SonarCloud to analyze commit history
 
-      - name: 🔎 Run SonarCloud Analysis
+      - name: Run SonarCloud Analysis
         uses: SonarSource/sonarqube-scan-action@v4
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
